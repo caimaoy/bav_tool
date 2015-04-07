@@ -11,19 +11,38 @@ __author__ = 'caimaoy'
 
 import shutil
 import os
+import subprocess
 import sys
 
 from PyQt4 import QtGui, QtCore
 
 from conf import bav_conf
 
-
-
-
 HOST_PATH = r'C:\Windows\System32\drivers\etc\hosts'
 HOST_DIR = os.path.dirname(HOST_PATH)
 HOST_BASE_NAME = os.path.basename(HOST_PATH)
+BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
 
+def call(args, wait = True):
+    p = subprocess.Popen(args,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE,
+                         shell=True
+                         )
+    if wait:
+        retCode = p.wait()
+        stdout = p.stdout.read()
+        stderr = p.stderr.read()
+
+        print retCode
+        print stdout
+
+    return
+
+
+def bav_checklist():
+    call(BAV_CHECKLIST_URL, False)
+    # call(BAV_CHECKLIST_URL, False)
 
 def backup_hosts():
     backup_name = '_backup'
@@ -50,10 +69,17 @@ def cat(path):
 
 
 def update_hosts():
+    return hosts('update_hosts')
+
+def md5_hosts():
+    return hosts('md5_hosts')
+
+def hosts(k):
     backup_hosts()
     with open(HOST_PATH, 'w') as f:
-        f.write(bav_conf.BAV_HOST['update_hosts'])
+        f.write(bav_conf.BAV_HOST[k])
     cat(HOST_PATH)
+
 
 class Icon(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -97,6 +123,14 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'升级hosts',
             'function': update_hosts
+        },
+        {
+            'button_name': u'线下云查hosts',
+            'function': md5_hosts
+        },
+        {
+            'button_name': u'Bav_checklist指南',
+            'function': bav_checklist
         },
 
         ]
