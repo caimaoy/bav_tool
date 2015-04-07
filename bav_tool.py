@@ -13,6 +13,7 @@ import shutil
 import os
 import subprocess
 import sys
+import _winreg
 
 from PyQt4 import QtGui, QtCore
 
@@ -42,7 +43,19 @@ def call(args, wait = True):
 
 def bav_checklist():
     call(BAV_CHECKLIST_URL, False)
-    # call(BAV_CHECKLIST_URL, False)
+
+
+def kill_process(name):
+    os.system(r'taskkill /f /im %s' % name)
+
+
+def start_process(cmd):
+    os.system(r'%s' % cmd)
+
+def fresh_explorer():
+    kill_process('explorer.exe')
+    call('start explorer', False)
+
 
 def backup_hosts():
     backup_name = '_backup'
@@ -79,6 +92,17 @@ def hosts(k):
     with open(HOST_PATH, 'w') as f:
         f.write(bav_conf.BAV_HOST[k])
     cat(HOST_PATH)
+
+
+def get_bav_install_path():
+    k = _winreg.HKEY_LOCAL_MACHINE
+    sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+    key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
+    # key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, 'Software\\Microsoft\\Internet Explorer', 0, _winreg.KEY_READ)
+    name = 'InstallDir'
+    (value, valuetype) = _winreg.QueryValueEx(key, name)
+    print value
+    print valuetype
 
 
 class Icon(QtGui.QWidget):
@@ -132,7 +156,14 @@ class Icon(QtGui.QWidget):
             'button_name': u'Bav_checklist指南',
             'function': bav_checklist
         },
-
+        {
+            'button_name': u'刷新explorer',
+            'function': fresh_explorer
+        },
+        {
+            'button_name': u'get_bav_install_path',
+            'function':get_bav_install_path
+        },
         ]
         self.window_width = self.item_width + 20
         self.window_hight = len(lis) * self.item_hight + 20
