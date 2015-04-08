@@ -25,7 +25,7 @@ HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
-def call(args, wait = True):
+def call(args, wait=True):
     p = subprocess.Popen(args,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE,
@@ -53,10 +53,10 @@ def kill_process(name):
 def start_process(cmd):
     os.system(r'%s' % cmd)
 
+
 def fresh_explorer():
     kill_process('explorer.exe')
     call('start explorer', False)
-
 
 
 def backup(src, des, backup_name='_backup'):
@@ -81,25 +81,8 @@ def backup(src, des, backup_name='_backup'):
 
 
 def backup_hosts():
-    '''
-    backup_name = '_backup'
-    backup_num = 0
-    copy_fail = True
-    while copy_fail:
-        backup_num = backup_num + 1
-        des_path = ''.join([HOST_PATH, backup_name, str(backup_num)])
-        if os.path.exists(des_path):
-            continue
-        try:
-            des_path = ''.join([HOST_PATH, backup_name, str(backup_num)])
-            shutil.copy(HOST_PATH, des_path)
-
-        except Exception as e:
-            print e
-        else:
-            copy_fail = False
-    '''
     backup(HOST_PATH, HOST_PATH)
+
 
 def cat(path):
     with open(path, 'r') as f:
@@ -110,8 +93,10 @@ def cat(path):
 def update_hosts():
     return hosts('update_hosts')
 
+
 def md5_hosts():
     return hosts('md5_hosts')
+
 
 def hosts(k):
     backup_hosts()
@@ -120,19 +105,11 @@ def hosts(k):
     cat(HOST_PATH)
 
 
-'''
-def get_bav_install_path():
-    k = _winreg.HKEY_LOCAL_MACHINE
-    sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
-    key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
-    name = 'InstallDir'
-    (value, valuetype) = _winreg.QueryValueEx(key, name)
-    print value
-    print valuetype
-'''
-
 def is_64_windows():
     return 'PROGRAMFILES(X86)' in os.environ
+
+def show_hosts():
+    cat(HOST_PATH)
 
 
 class Icon(QtGui.QWidget):
@@ -156,6 +133,10 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'备份hosts',
             'function': backup_hosts
+        },
+        {
+            'button_name': u'show_hosts',
+            'function': show_hosts
         },
         {
             'button_name': u'升级hosts',
@@ -206,9 +187,7 @@ class Icon(QtGui.QWidget):
         bav_dump_path = os.path.join(bav_install_path, 'dump')
         print bav_dump_path
         des_dir = os.path.join(LOCAL_DIR, 'dump')
-        # shutil.copytree(bav_dump_path, des_dir)
         backup(bav_dump_path, des_dir)
-
 
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
