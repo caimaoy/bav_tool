@@ -23,6 +23,7 @@ HOST_PATH = r'C:\Windows\System32\drivers\etc\hosts'
 HOST_DIR = os.path.dirname(HOST_PATH)
 HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
+LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait = True):
     p = subprocess.Popen(args,
@@ -57,7 +58,30 @@ def fresh_explorer():
     call('start explorer', False)
 
 
+
+def backup(src, des, backup_name='_backup'):
+    backup_name = '_backup'
+    backup_num = 0
+    copy_fail = True
+    while copy_fail:
+        backup_num = backup_num + 1
+        des_path = ''.join([des, backup_name, str(backup_num)])
+        if os.path.exists(des_path):
+            continue
+        try:
+            if os.path.isfile(src):
+                shutil.copy(src, des_path)
+            elif os.path.isdir(src):
+                shutil.copytree(src, des_path)
+
+        except Exception as e:
+            print e
+        else:
+            copy_fail = False
+
+
 def backup_hosts():
+    '''
     backup_name = '_backup'
     backup_num = 0
     copy_fail = True
@@ -74,6 +98,8 @@ def backup_hosts():
             print e
         else:
             copy_fail = False
+    '''
+    backup(HOST_PATH, HOST_PATH)
 
 def cat(path):
     with open(path, 'r') as f:
@@ -94,19 +120,25 @@ def hosts(k):
     cat(HOST_PATH)
 
 
+'''
 def get_bav_install_path():
     k = _winreg.HKEY_LOCAL_MACHINE
     sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
     key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
-    # key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER, 'Software\\Microsoft\\Internet Explorer', 0, _winreg.KEY_READ)
     name = 'InstallDir'
     (value, valuetype) = _winreg.QueryValueEx(key, name)
     print value
     print valuetype
+'''
+
+def is_64_windows():
+    return 'PROGRAMFILES(X86)' in os.environ
 
 
 class Icon(QtGui.QWidget):
     def __init__(self, parent=None):
+        self.is_64_windows = is_64_windows()
+
         QtGui.QWidget.__init__(self, parent)
 
         self.setGeometry(300, 300, 275, 550)
@@ -114,27 +146,8 @@ class Icon(QtGui.QWidget):
         self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
 
         '''
-        quit = QtGui.QPushButton('backup_hosts', self)
-        quit.setGeometry(10, 10, 150, 35)
-        self.connect(quit, QtCore.SIGNAL('clicked()'), backup_hosts)
-        '''
-
-        '''
         self.connect(quit, QtCore.SIGNAL('clicked()'), QtGui.qApp,
                     QtCore.SLOT('quit()'))
-        '''
-
-        '''
-        start = QtGui.QPushButton('update_hosts', self)
-        start.setGeometry(10, 50, 150, 80)
-        self.connect(start, QtCore.SIGNAL('clicked()'), update_hosts)
-        '''
-
-        '''
-        fresh = QtGui.QPushButton('Fresh', self)
-        fresh.setGeometry(130, 10, 60, 35)
-        self.connect(fresh, QtCore.SIGNAL('clicked()'), fresh_explorer)
-        self.center()
         '''
 
         self.item_width = 250
@@ -157,12 +170,12 @@ class Icon(QtGui.QWidget):
             'function': bav_checklist
         },
         {
-            'button_name': u'刷新explorer',
+            'button_name': u'刷新explorer(解决右键，64无效)',
             'function': fresh_explorer
         },
         {
-            'button_name': u'get_bav_install_path',
-            'function':get_bav_install_path
+            'button_name': u'备份dump文件夹',
+            'function': self.get_bav_install_path
         },
         ]
         self.window_width = self.item_width + 20
@@ -179,6 +192,22 @@ class Icon(QtGui.QWidget):
             quit.setGeometry(10, 10, 150, 35)
             self.connect(quit, QtCore.SIGNAL('clicked()'), backup_hosts)
             '''
+
+    def get_bav_install_path(self):
+        k = _winreg.HKEY_LOCAL_MACHINE
+        if self.is_64_windows:
+            sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+        else:
+            sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+        key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
+        name = 'InstallDir'
+        (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
+        print bav_install_path
+        bav_dump_path = os.path.join(bav_install_path, 'dump')
+        print bav_dump_path
+        des_dir = os.path.join(LOCAL_DIR, 'dump')
+        # shutil.copytree(bav_dump_path, des_dir)
+        backup(bav_dump_path, des_dir)
 
 
     def center(self):
