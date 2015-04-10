@@ -21,7 +21,7 @@ BAV_HOST = {
 10.240.36.36 download.bav.baidu.com
 10.240.36.36 download.security.baidu.co.th
 10.240.36.36 updown.bav.baidu.com
-    '''
+'''
     ,
 
     'md5_hosts':
@@ -32,7 +32,7 @@ BAV_HOST = {
 10.240.36.42 up.bav.baidu.com
 10.240.36.42 f.th.bav.baidu.com
 10.240.36.42 up.th.bav.baidu.com
-    '''
+'''
     ,
 }
 
