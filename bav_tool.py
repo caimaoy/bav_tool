@@ -240,13 +240,9 @@ def call(args, wait=True, shell=True):
         stdout = p.stdout.read()
         stderr = p.stderr.read()
 
-        '''
-        BavLog.debug(retCode)
-        BavLog.info(stdout)
-        BavLog.error(stderr)
-        '''
         print retCode
         print stdout
+        print stderr
 
 
     return
@@ -401,17 +397,6 @@ class Icon(QtGui.QWidget):
         name = 'InstallDir'
         (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
         return bav_install_path
-
-        '''
-        BavLog.debug('\nBAV install dir:\n%s\n' % bav_install_path)
-        bav_dump_path = os.path.join(bav_install_path, 'dump')
-        BavLog.debug('\nBAV dump dir:\n%s\n' % bav_dump_path)
-        des_dir = os.path.join(LOCAL_DIR, 'dump')
-        backup(bav_dump_path, des_dir)
-        cmd = 'explorer.exe /e, /root, "%s\\"' % LOCAL_DIR
-        BavLog.info('open %s\n'% LOCAL_DIR)
-        call(cmd , shell=False, wait=False)
-        '''
 
     def backup_dump(self):
         bav_install_path = self.get_bav_install_path()
