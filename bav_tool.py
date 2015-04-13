@@ -14,6 +14,8 @@ import shutil
 import os
 import subprocess
 import sys
+import threading
+import urllib2
 import _winreg
 
 from PyQt4 import QtGui, QtCore
@@ -370,6 +372,10 @@ class Icon(QtGui.QWidget):
             'button_name': u'备份dump文件夹',
             'function': self.backup_dump
         },
+        {
+            'button_name': u'下载样本',
+            'function': self.show_download_dialog
+        },
         ]
         self.window_width = self.item_width + 20
         self.window_hight = len(lis) * self.item_hight + 20
@@ -423,8 +429,45 @@ class Icon(QtGui.QWidget):
                  (screen.height() - size.height()) / 2)
 
 
+    def show_download_dialog(self):
+        text, ok = QtGui.QInputDialog.getText(
+            self,
+            u'下载样本',
+            u'输入样本MD5:'
+        )
+        if ok:
+            print text
+            #　TODO check text add download callback
+            download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % text
+            c = Counter(text, download_url)
+            c.start()
+
+class Counter(threading.Thread):
+    def __init__(self, file_name, download_url):
+        '''@summary: 初始化对象。
+        @param lock: 琐对象。
+        @param threadName: 线程名称。
+        '''
+        super(Counter, self).__init__()
+        self.file_name = file_name
+        self.download_url = download_url
+
+    def run(self):
+        '''@summary: 重写父类run方法，在线程启动后执行该方法内的代码。
+        '''
+        dl(self.file_name, str(self.download_url))
+
+
+def dl(file_name, download_url):
+    f = urllib2.urlopen(download_url)
+    with open(file_name, 'wb') as code:
+        BavLog.debug('open file')
+        BavLog.debug(download_url)
+        code.write(f.read())
+
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
     icon = Icon()
     icon.show()
     sys.exit(app.exec_())
+    # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=cf8889b294ffdbbcfc490b18a076af6a
