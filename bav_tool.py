@@ -245,8 +245,6 @@ def call(args, wait=True, shell=True):
         print retCode
         print stdout
         print stderr
-
-
     return
 
 
@@ -306,6 +304,8 @@ def update_hosts():
 def md5_hosts():
     return hosts('md5_hosts')
 
+def clean_hosts():
+    return hosts('clean')
 
 def hosts(k):
     backup_hosts()
@@ -320,6 +320,63 @@ def is_64_windows():
 def show_hosts():
     BavLog.info('\nhosts:\n')
     cat(HOST_PATH)
+
+def open_dir(path):
+    cmd = 'explorer.exe /e, /root, "%s\\"' % path
+    BavLog.info('open %s\n'% path)
+    call(cmd , shell=False, wait=False)
+
+def open_hosts_dir():
+    open_dir(HOST_DIR)
+
+class HostWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setGeometry(300, 300, 275, 550)
+        self.setWindowTitle(u'hosts助手')
+        self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
+
+        self.item_width = 250
+        self.item_hight = 30
+        lis = [
+        {
+            'button_name': u'clean_hosts',
+            'function': clean_hosts
+        },
+        {
+            'button_name': u'打开hosts目录',
+            'function': open_hosts_dir
+        },
+        {
+            'button_name': u'备份hosts',
+            'function': backup_hosts
+        },
+        {
+            'button_name': u'show_hosts',
+            'function': show_hosts
+        },
+        {
+            'button_name': u'升级hosts',
+            'function': update_hosts
+        },
+        {
+            'button_name': u'线下云查hosts',
+            'function': md5_hosts
+        },
+        ]
+
+        self.window_width = self.item_width + 20
+        self.window_hight = len(lis) * self.item_hight
+        self.setGeometry(300, 300, self.window_width, self.window_hight)
+
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(1)
+
+        for index, i in enumerate(lis):
+            item = QtGui.QPushButton(i['button_name'])
+            self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
+            grid.addWidget(item, index, 0)
+        self.setLayout(grid)
 
 
 class Icon(QtGui.QWidget):
@@ -338,27 +395,17 @@ class Icon(QtGui.QWidget):
         '''
 
         self.item_width = 250
-        self.item_hight = 35
+        self.item_hight = 30
+
+        self.hosts_widget = HostWidget()
         lis = [
+        {
+            'button_name': u'hosts助手',
+            'function': self.hosts_widget.show
+        },
         {
             'button_name': u'打开BAV安装目录',
             'function': self.open_insatll_dir
-        },
-        {
-            'button_name': u'备份hosts',
-            'function': backup_hosts
-        },
-        {
-            'button_name': u'show_hosts',
-            'function': show_hosts
-        },
-        {
-            'button_name': u'升级hosts',
-            'function': update_hosts
-        },
-        {
-            'button_name': u'线下云查hosts',
-            'function': md5_hosts
         },
         {
             'button_name': u'Bav_checklist指南',
@@ -377,20 +424,27 @@ class Icon(QtGui.QWidget):
             'function': self.show_download_dialog
         },
         ]
+
         self.window_width = self.item_width + 20
-        self.window_hight = len(lis) * self.item_hight + 20
+        self.window_hight = len(lis) * self.item_hight
+        # self.setGeometry(300, 300, 0, 0)
         self.setGeometry(300, 300, self.window_width, self.window_hight)
 
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(1)
+
         for index, i in enumerate(lis):
-            item = QtGui.QPushButton(i['button_name'], self)
+            item = QtGui.QPushButton(i['button_name'])
             item.setGeometry(10, 10 + index*self.item_hight,
             250, self.item_hight )
             self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
+            grid.addWidget(item, index, 0)
             '''
             quit = QtGui.QPushButton('backup_hosts', self)
             quit.setGeometry(10, 10, 150, 35)
             self.connect(quit, QtCore.SIGNAL('clicked()'), backup_hosts)
             '''
+        self.setLayout(grid)
         self.center()
 
     def get_bav_install_path(self):
@@ -418,9 +472,19 @@ class Icon(QtGui.QWidget):
 
     def open_insatll_dir(self):
         bav_install_path = self.get_bav_install_path()
-        cmd = 'explorer.exe /e, /root, "%s\\"' % bav_install_path
-        BavLog.info('open %s\n'% bav_install_path)
+        self.open_dir(bav_install_path)
+
+    def open_hosts_dir(self):
+        self.open_dir(HOST_DIR)
+
+    def open_dir(self, path):
+        '''
+        cmd = 'explorer.exe /e, /root, "%s\\"' % path
+        BavLog.info('open %s\n'% path)
         call(cmd , shell=False, wait=False)
+        '''
+        open_dir(path)
+
 
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
@@ -439,16 +503,13 @@ class Icon(QtGui.QWidget):
             print text
             #　TODO check text add download callback
             download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % text
-            c = Counter(text, download_url)
+            c = Downloader(text, download_url)
             c.start()
 
-class Counter(threading.Thread):
+
+class Downloader(threading.Thread):
     def __init__(self, file_name, download_url):
-        '''@summary: 初始化对象。
-        @param lock: 琐对象。
-        @param threadName: 线程名称。
-        '''
-        super(Counter, self).__init__()
+        super(Downloader, self).__init__()
         self.file_name = file_name
         self.download_url = download_url
 

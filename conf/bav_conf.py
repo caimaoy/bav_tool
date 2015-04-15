@@ -34,6 +34,7 @@ BAV_HOST = {
 10.240.36.42 up.th.bav.baidu.com
 '''
     ,
+    'clean':''
 }
 
 
