@@ -229,6 +229,8 @@ HOST_PATH = r'C:\Windows\System32\drivers\etc\hosts'
 HOST_DIR = os.path.dirname(HOST_PATH)
 HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
+BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
+WHITE_SAMPLE_URL = r'start chrome http://7xif3g.com1.z0.glb.clouddn.com/caimaoy_vim_keyboard.png'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -250,6 +252,15 @@ def call(args, wait=True, shell=True):
 
 def bav_checklist():
     call(BAV_CHECKLIST_URL, False)
+
+
+def download_black_sample():
+    call(BLACK_SAMPLE_URL, False)
+
+
+def download_white_sample():
+    #TODO bugs
+    call(WHITE_SAMPLE_URL, False)
 
 
 def kill_process(name):
@@ -304,8 +315,10 @@ def update_hosts():
 def md5_hosts():
     return hosts('md5_hosts')
 
+
 def clean_hosts():
     return hosts('clean')
+
 
 def hosts(k):
     backup_hosts()
@@ -321,13 +334,16 @@ def show_hosts():
     BavLog.info('\nhosts:\n')
     cat(HOST_PATH)
 
+
 def open_dir(path):
     cmd = 'explorer.exe /e, /root, "%s\\"' % path
     BavLog.info('open %s\n'% path)
     call(cmd , shell=False, wait=False)
 
+
 def open_hosts_dir():
     open_dir(HOST_DIR)
+
 
 class HostWidget(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -379,6 +395,44 @@ class HostWidget(QtGui.QWidget):
         self.setLayout(grid)
 
 
+class ChecklistWidget(QtGui.QWidget):
+    def __init__(self, parent=None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setGeometry(300, 300, 275, 550)
+        self.setWindowTitle(u'checklist助手')
+        self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
+
+        self.item_width = 250
+        self.item_hight = 30
+        lis = [
+        {
+            'button_name': u'Bav_checklist指南',
+            'function': bav_checklist
+        },
+        {
+            'button_name': u'chrome下载黑文件',
+            'function': download_black_sample
+        },
+        {
+            'button_name': u'chrome下载白文件',
+            'function': download_white_sample
+        },
+        ]
+
+        self.window_width = self.item_width + 20
+        self.window_hight = len(lis) * self.item_hight
+        self.setGeometry(300, 300, self.window_width, self.window_hight)
+
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(1)
+
+        for index, i in enumerate(lis):
+            item = QtGui.QPushButton(i['button_name'])
+            self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
+            grid.addWidget(item, index, 0)
+        self.setLayout(grid)
+
+
 class Icon(QtGui.QWidget):
     def __init__(self, parent=None):
         self.is_64_windows = is_64_windows()
@@ -398,18 +452,19 @@ class Icon(QtGui.QWidget):
         self.item_hight = 30
 
         self.hosts_widget = HostWidget()
+        self.checklist_widget = ChecklistWidget()
         lis = [
         {
             'button_name': u'hosts助手',
             'function': self.hosts_widget.show
         },
         {
-            'button_name': u'打开BAV安装目录',
-            'function': self.open_insatll_dir
+            'button_name': u'Bav_checklist助手',
+            'function': self.checklist_widget.show
         },
         {
-            'button_name': u'Bav_checklist指南',
-            'function': bav_checklist
+            'button_name': u'打开BAV安装目录',
+            'function': self.open_insatll_dir
         },
         {
             'button_name': u'刷新explorer(解决右键，64无效)',
@@ -427,7 +482,6 @@ class Icon(QtGui.QWidget):
 
         self.window_width = self.item_width + 20
         self.window_hight = len(lis) * self.item_hight
-        # self.setGeometry(300, 300, 0, 0)
         self.setGeometry(300, 300, self.window_width, self.window_hight)
 
         grid = QtGui.QGridLayout()
@@ -469,7 +523,6 @@ class Icon(QtGui.QWidget):
         BavLog.info('open %s\n'% LOCAL_DIR)
         call(cmd , shell=False, wait=False)
 
-
     def open_insatll_dir(self):
         bav_install_path = self.get_bav_install_path()
         self.open_dir(bav_install_path)
@@ -501,10 +554,24 @@ class Icon(QtGui.QWidget):
         )
         if ok:
             print text
+            text = str(text)
             #　TODO check text add download callback
-            download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % text
-            c = Downloader(text, download_url)
-            c.start()
+            try:
+                print text.strip()
+                print text.upper()
+                md5 = text.strip().upper()
+                print md5
+            except Exception as e:
+                BavLog.error(e)
+
+            import re
+            reg_ma5 = r'^[\dABCDEF]{32}$'
+            if re.match(reg_ma5, md5):
+                download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % text
+                c = Downloader(text, download_url)
+                c.start()
+            else:
+                BavLog.error('md5: %s is wrong' % md5)
 
 
 class Downloader(threading.Thread):
@@ -525,6 +592,7 @@ def dl(file_name, download_url):
         BavLog.debug('open file')
         BavLog.debug(download_url)
         code.write(f.read())
+
 
 if __name__ == '__main__':
     app = QtGui.QApplication(sys.argv)
