@@ -8,6 +8,8 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
+__version__ = 'v0.0.1beta'
+__uuid_name__ = 'bav_test_tool'
 
 import ctypes
 import shutil
@@ -15,17 +17,38 @@ import os
 import subprocess
 import sys
 import threading
+import urllib
 import urllib2
 import _winreg
 
 from PyQt4 import QtGui, QtCore
-
 from conf import bav_conf
+# import requests 我也想用requests啊， 但是32位打包exe后在64有Runtime Error
 
 
 STD_INPUT_HANDLE = -10
 STD_OUTPUT_HANDLE = -11
 STD_ERROR_HANDLE = -12
+
+
+import functools
+
+def upload(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        bav_conf.UPLOAD_URL
+        BavLog.info(func.__name__)
+        post_context = {}
+        post_context['function'] = func.__name__
+        print post_context
+        # r = requests.post(bav_conf.UPLOAD_URL, data=post_context)
+        f = urllib2.urlopen(
+            url=bav_conf.UPLOAD_URL,
+            data=urllib.urlencode(post_context)
+        )
+        print f.read()
+        return func(*args, **kwargs)
+    return wrapper
 
 # 字体颜色定义 ,关键在于颜色编码，由2位十六进制组成，分别取0~f，前一位指的是背景色，后一位指的是字体色
 #由于该函数的限制，应该是只有这16种，可以前景色与背景色组合。也可以几种颜色通过或运算组合，组合后还是在这16种颜色中
@@ -214,15 +237,15 @@ def printYellowRed(mess):
 class BavLog(object):
     @staticmethod
     def info(mess):
-        printGreen(mess)
+        printGreen(mess + '\n')
 
     @staticmethod
     def debug(mess):
-        printDarkWhite(mess)
+        printDarkGray(mess + '\n')
 
     @staticmethod
     def error(mess):
-        printRed(mess)
+        printRed(mess + '\n')
 
 
 HOST_PATH = r'C:\Windows\System32\drivers\etc\hosts'
@@ -230,7 +253,7 @@ HOST_DIR = os.path.dirname(HOST_PATH)
 HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
 BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
-WHITE_SAMPLE_URL = r'start chrome http://7xif3g.com1.z0.glb.clouddn.com/caimaoy_vim_keyboard.png'
+WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -250,16 +273,18 @@ def call(args, wait=True, shell=True):
     return
 
 
+@upload
 def bav_checklist():
     call(BAV_CHECKLIST_URL, False)
 
 
+@upload
 def download_black_sample():
     call(BLACK_SAMPLE_URL, False)
 
 
+@upload
 def download_white_sample():
-    #TODO bugs
     call(WHITE_SAMPLE_URL, False)
 
 
@@ -271,6 +296,7 @@ def start_process(cmd):
     os.system(r'%s' % cmd)
 
 
+@upload
 def fresh_explorer():
     kill_process('explorer.exe')
     call('start explorer', False)
@@ -297,9 +323,10 @@ def backup(src, des, backup_name='_backup'):
         else:
             copy_fail = False
 
-
+@upload
 def backup_hosts():
     backup(HOST_PATH, HOST_PATH)
+
 
 
 def cat(path):
@@ -308,14 +335,17 @@ def cat(path):
             BavLog.info(i)
 
 
+@upload
 def update_hosts():
     return hosts('update_hosts')
 
 
+@upload
 def md5_hosts():
     return hosts('md5_hosts')
 
 
+@upload
 def clean_hosts():
     return hosts('clean')
 
@@ -330,17 +360,19 @@ def hosts(k):
 def is_64_windows():
     return 'PROGRAMFILES(X86)' in os.environ
 
+@upload
 def show_hosts():
-    BavLog.info('\nhosts:\n')
+    BavLog.info('hosts:')
     cat(HOST_PATH)
 
 
 def open_dir(path):
     cmd = 'explorer.exe /e, /root, "%s\\"' % path
-    BavLog.info('open %s\n'% path)
+    BavLog.info('open %s'% path)
     call(cmd , shell=False, wait=False)
 
 
+@upload
 def open_hosts_dir():
     open_dir(HOST_DIR)
 
@@ -434,13 +466,14 @@ class ChecklistWidget(QtGui.QWidget):
 
 
 class Icon(QtGui.QWidget):
+    @upload
     def __init__(self, parent=None):
         self.is_64_windows = is_64_windows()
 
         QtGui.QWidget.__init__(self, parent)
 
         self.setGeometry(300, 300, 275, 550)
-        self.setWindowTitle('Bav_tools')
+        self.setWindowTitle('Bav_tools %s' % __version__)
         self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
 
         '''
@@ -512,28 +545,32 @@ class Icon(QtGui.QWidget):
         (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
         return bav_install_path
 
+
+    @upload
     def backup_dump(self):
         bav_install_path = self.get_bav_install_path()
-        BavLog.debug('\nBAV install dir:\n%s\n' % bav_install_path)
+        BavLog.debug('BAV install dir:\n%s\n' % bav_install_path)
         bav_dump_path = os.path.join(bav_install_path, 'dump')
-        BavLog.debug('\nBAV dump dir:\n%s\n' % bav_dump_path)
+        BavLog.debug('BAV dump dir:\n%s\n' % bav_dump_path)
         des_dir = os.path.join(LOCAL_DIR, 'dump')
         backup(bav_dump_path, des_dir)
         cmd = 'explorer.exe /e, /root, "%s\\"' % LOCAL_DIR
-        BavLog.info('open %s\n'% LOCAL_DIR)
+        BavLog.info('open %s'% LOCAL_DIR)
         call(cmd , shell=False, wait=False)
 
+    @upload
     def open_insatll_dir(self):
         bav_install_path = self.get_bav_install_path()
         self.open_dir(bav_install_path)
 
+    @upload
     def open_hosts_dir(self):
         self.open_dir(HOST_DIR)
 
     def open_dir(self, path):
         '''
         cmd = 'explorer.exe /e, /root, "%s\\"' % path
-        BavLog.info('open %s\n'% path)
+        BavLog.info('open %s'% path)
         call(cmd , shell=False, wait=False)
         '''
         open_dir(path)
@@ -553,23 +590,20 @@ class Icon(QtGui.QWidget):
             u'输入样本MD5:'
         )
         if ok:
-            print text
             text = str(text)
-            #　TODO check text add download callback
             try:
-                print text.strip()
-                print text.upper()
                 md5 = text.strip().upper()
-                print md5
+                BavLog.debug('md5 is %s'% md5)
             except Exception as e:
                 BavLog.error(e)
 
             import re
             reg_ma5 = r'^[\dABCDEF]{32}$'
             if re.match(reg_ma5, md5):
-                download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % text
-                c = Downloader(text, download_url)
+                download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % md5
+                c = Downloader(md5, download_url)
                 c.start()
+                BavLog.debug('download %s'% md5)
             else:
                 BavLog.error('md5: %s is wrong' % md5)
 
@@ -583,15 +617,16 @@ class Downloader(threading.Thread):
     def run(self):
         '''@summary: 重写父类run方法，在线程启动后执行该方法内的代码。
         '''
-        dl(self.file_name, str(self.download_url))
+        download_file(self.file_name, str(self.download_url))
+        open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
-
-def dl(file_name, download_url):
+@upload
+def download_file(file_name, download_url):
     f = urllib2.urlopen(download_url)
     with open(file_name, 'wb') as code:
-        BavLog.debug('open file')
-        BavLog.debug(download_url)
+        BavLog.debug('download_url is %s' % download_url)
         code.write(f.read())
+        BavLog.debug('%s completed' % download_url)
 
 
 if __name__ == '__main__':
@@ -599,4 +634,4 @@ if __name__ == '__main__':
     icon = Icon()
     icon.show()
     sys.exit(app.exec_())
-    # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=cf8889b294ffdbbcfc490b18a076af6a
+    # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash= 

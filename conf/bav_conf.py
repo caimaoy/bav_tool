@@ -37,6 +37,8 @@ BAV_HOST = {
     'clean':''
 }
 
+UPLOAD_URL = r'http://172.17.201.21:5000/upload'
+
 
 
 if __name__ == '__main__':
