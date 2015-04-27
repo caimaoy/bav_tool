@@ -37,7 +37,7 @@ BAV_HOST = {
     'clean':''
 }
 
-UPLOAD_URL = r'http://172.17.201.21:5000/upload'
+UPLOAD_URL = r'http://client.baidu.com:8775/count/chenyue_tool_count.php'
 
 
 

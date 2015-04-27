@@ -12,10 +12,12 @@ __version__ = 'v0.0.1beta'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
+import json
 import shutil
 import os
 import subprocess
 import sys
+import socket
 import threading
 import urllib
 import urllib2
@@ -37,16 +39,31 @@ def upload(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         bav_conf.UPLOAD_URL
-        BavLog.info(func.__name__)
+        # BavLog.info(func.__name__)
         post_context = {}
-        post_context['function'] = func.__name__
-        print post_context
+        post_context['function_name'] = func.__name__
+        # post_context['function_name'] = func.__name__
+        # print post_context
         # r = requests.post(bav_conf.UPLOAD_URL, data=post_context)
-        f = urllib2.urlopen(
-            url=bav_conf.UPLOAD_URL,
-            data=urllib.urlencode(post_context)
-        )
-        print f.read()
+        try:
+            f = urllib2.urlopen(
+                url=bav_conf.UPLOAD_URL,
+                data=urllib.urlencode(post_context),
+                timeout=1
+            )
+            a = json.loads(f.read())
+            # BavLog.debug(repr(a))
+            if a['status'] is not True:
+                BavLog.error(repr(a))
+        # except Exception as e:
+            # BavLog.debug(e)
+            # URLError
+        except socket.error:
+            errno, errstr = sys.exc_info()[:2]
+            if errno == socket.timeout:
+                BavLog.error(u'连准入吧，少年')
+        except Exception as e:
+            BavLog.error(repr(e))
         return func(*args, **kwargs)
     return wrapper
 
@@ -508,7 +525,7 @@ class Icon(QtGui.QWidget):
             'function': self.backup_dump
         },
         {
-            'button_name': u'下载样本',
+            'button_name': u'下载样本(文件夹自动打开)',
             'function': self.show_download_dialog
         },
         ]
@@ -593,7 +610,7 @@ class Icon(QtGui.QWidget):
             text = str(text)
             try:
                 md5 = text.strip().upper()
-                BavLog.debug('md5 is %s'% md5)
+                # BavLog.debug('md5 is %s'% md5)
             except Exception as e:
                 BavLog.error(e)
 
@@ -617,16 +634,34 @@ class Downloader(threading.Thread):
     def run(self):
         '''@summary: 重写父类run方法，在线程启动后执行该方法内的代码。
         '''
-        download_file(self.file_name, str(self.download_url))
-        open_dir(os.path.dirname(os.path.abspath(self.file_name)))
+        ret = download_file(self.file_name, str(self.download_url))
+        if ret:
+            open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
 @upload
 def download_file(file_name, download_url):
-    f = urllib2.urlopen(download_url)
-    with open(file_name, 'wb') as code:
-        BavLog.debug('download_url is %s' % download_url)
-        code.write(f.read())
-        BavLog.debug('%s completed' % download_url)
+    #TODO del file
+    ret = False
+    try:
+        f = urllib2.urlopen(download_url, timeout=10)
+        with open(file_name, 'wb') as code:
+            BavLog.debug('download_url is %s' % download_url)
+            code.write(f.read())
+            BavLog.debug('%s completed' % download_url)
+    except socket.error:
+        errno, errstr = sys.exc_info()[:2]
+        if errno == socket.timeout:
+            BavLog.error(u'连准入吧，少年')
+            try:
+                os.remove(file_name)
+            except Exception:
+                pass
+    except Exception as e:
+        BavLog.error(repr(e))
+    else:
+        ret = True
+    return ret
+
 
 
 if __name__ == '__main__':
@@ -634,4 +669,4 @@ if __name__ == '__main__':
     icon = Icon()
     icon.show()
     sys.exit(app.exec_())
-    # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash= 
+    # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=AC7123250F7DEBF509D1EB299CB593F1
