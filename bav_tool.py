@@ -49,7 +49,7 @@ def upload(func):
             f = urllib2.urlopen(
                 url=bav_conf.UPLOAD_URL,
                 data=urllib.urlencode(post_context),
-                timeout=1
+                timeout=2
             )
             a = json.loads(f.read())
             # BavLog.debug(repr(a))
@@ -61,7 +61,7 @@ def upload(func):
         except socket.error:
             errno, errstr = sys.exc_info()[:2]
             if errno == socket.timeout:
-                BavLog.error(u'连准入吧，少年')
+                BavLog.error(u'网络有点问题...')
         except Exception as e:
             BavLog.error(repr(e))
         return func(*args, **kwargs)
@@ -88,7 +88,6 @@ FOREGROUND_PINK = 0x0d # pink.
 FOREGROUND_YELLOW = 0x0e # yellow.
 FOREGROUND_WHITE = 0x0f # white.
 
-
 # Windows CMD命令行 背景颜色定义 background colors
 BACKGROUND_BLUE = 0x10 # dark blue.
 BACKGROUND_GREEN = 0x20 # dark green.
@@ -105,7 +104,6 @@ BACKGROUND_RED = 0xc0 # red.
 BACKGROUND_PINK = 0xd0 # pink.
 BACKGROUND_YELLOW = 0xe0 # yellow.
 BACKGROUND_WHITE = 0xf0 # white.
-
 
 
 # get handle
@@ -343,7 +341,6 @@ def backup(src, des, backup_name='_backup'):
 @upload
 def backup_hosts():
     backup(HOST_PATH, HOST_PATH)
-
 
 
 def cat(path):
@@ -636,6 +633,12 @@ class Downloader(threading.Thread):
         '''
         ret = download_file(self.file_name, str(self.download_url))
         if ret:
+            '''
+            BavLog.debug('download file is %s' % self.file_name)
+            BavLog.debug('py_file is %s' % __file__)
+            BavLog.debug('download_dir is %s' % os.path.dirname(os.path.abspath(self.file_name)))
+            BavLog.debug('py_file_dir is %s' % os.path.dirname(os.path.abspath(__file__)))
+            '''
             open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
 @upload
@@ -651,7 +654,7 @@ def download_file(file_name, download_url):
     except socket.error:
         errno, errstr = sys.exc_info()[:2]
         if errno == socket.timeout:
-            BavLog.error(u'连准入吧，少年')
+            BavLog.error(u'网络有点问题...')
             try:
                 os.remove(file_name)
             except Exception:
@@ -661,7 +664,6 @@ def download_file(file_name, download_url):
     else:
         ret = True
     return ret
-
 
 
 if __name__ == '__main__':
