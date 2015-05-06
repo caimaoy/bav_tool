@@ -525,6 +525,10 @@ class Icon(QtGui.QWidget):
             'button_name': u'下载样本(文件夹自动打开)',
             'function': self.show_download_dialog
         },
+        {
+            'button_name': u'合并csv文件，得到MD5文件',
+            'function': self.show_merge_csv_file
+        },
         ]
 
         self.window_width = self.item_width + 20
@@ -563,9 +567,9 @@ class Icon(QtGui.QWidget):
     @upload
     def backup_dump(self):
         bav_install_path = self.get_bav_install_path()
-        BavLog.debug('BAV install dir:\n%s\n' % bav_install_path)
+        BavLog.debug('BAV install dir:\n%s' % bav_install_path)
         bav_dump_path = os.path.join(bav_install_path, 'dump')
-        BavLog.debug('BAV dump dir:\n%s\n' % bav_dump_path)
+        BavLog.debug('BAV dump dir:\n%s' % bav_dump_path)
         des_dir = os.path.join(LOCAL_DIR, 'dump')
         backup(bav_dump_path, des_dir)
         cmd = 'explorer.exe /e, /root, "%s\\"' % LOCAL_DIR
@@ -582,20 +586,13 @@ class Icon(QtGui.QWidget):
         self.open_dir(HOST_DIR)
 
     def open_dir(self, path):
-        '''
-        cmd = 'explorer.exe /e, /root, "%s\\"' % path
-        BavLog.info('open %s'% path)
-        call(cmd , shell=False, wait=False)
-        '''
         open_dir(path)
-
 
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.geometry()
         self.move((screen.width() - size.width()) / 2,
                  (screen.height() - size.height()) / 2)
-
 
     def show_download_dialog(self):
         text, ok = QtGui.QInputDialog.getText(
@@ -621,6 +618,42 @@ class Icon(QtGui.QWidget):
             else:
                 BavLog.error('md5: %s is wrong' % md5)
 
+    @upload
+    def show_merge_csv_file(self):
+        def get_csv_data(file_name, row_name):
+            import csv
+            with open(file_name) as csv_file:
+                reader = csv.DictReader(csv_file)
+                for row in reader:
+                    yield row[row_name]
+
+        def find_all_hash_in_csv_of_dir(csv_dir):
+            md5_list = []
+            row_name = 'hash'
+            for f in [os.path.join(csv_dir, i) for i in os.listdir(csv_dir)]:
+                if f.endswith('.csv'):
+                    md5_list = md5_list + list(get_csv_data(f, row_name))
+            md5_list = list(set(md5_list))
+            with open(os.path.join(csv_dir, 'md5.txt'), 'w') as out_file:
+                for i in md5_list:
+                    out_file.write(i + '\n')
+            open_dir(csv_dir.encode('gbk'))
+
+        dir_path = QtGui.QFileDialog.getExistingDirectory(
+            self,
+            u'需要合并的cvs文件夹目录',
+            './'
+        )
+        csv_dir = unicode(dir_path)
+        if csv_dir:
+            BavLog.debug('csv_dir is %s' % csv_dir)
+            try:
+                find_all_hash_in_csv_of_dir(csv_dir)
+            except Exception as e:
+                print e
+        else:
+            return
+
 
 class Downloader(threading.Thread):
     def __init__(self, file_name, download_url):
@@ -633,12 +666,6 @@ class Downloader(threading.Thread):
         '''
         ret = download_file(self.file_name, str(self.download_url))
         if ret:
-            '''
-            BavLog.debug('download file is %s' % self.file_name)
-            BavLog.debug('py_file is %s' % __file__)
-            BavLog.debug('download_dir is %s' % os.path.dirname(os.path.abspath(self.file_name)))
-            BavLog.debug('py_file_dir is %s' % os.path.dirname(os.path.abspath(__file__)))
-            '''
             open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
 @upload
