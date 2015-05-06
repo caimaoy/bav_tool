@@ -35,10 +35,11 @@ STD_ERROR_HANDLE = -12
 
 import functools
 
+
 def upload(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        bav_conf.UPLOAD_URL
+        # bav_conf.UPLOAD_URL
         # BavLog.info(func.__name__)
         post_context = {}
         post_context['function_name'] = func.__name__
@@ -68,7 +69,7 @@ def upload(func):
     return wrapper
 
 # 字体颜色定义 ,关键在于颜色编码，由2位十六进制组成，分别取0~f，前一位指的是背景色，后一位指的是字体色
-#由于该函数的限制，应该是只有这16种，可以前景色与背景色组合。也可以几种颜色通过或运算组合，组合后还是在这16种颜色中
+# 由于该函数的限制，应该是只有这16种，可以前景色与背景色组合。也可以几种颜色通过或运算组合，组合后还是在这16种颜色中
 
 # Windows CMD命令行 字体颜色定义 text colors
 FOREGROUND_BLACK = 0x00 # black.
@@ -109,116 +110,118 @@ BACKGROUND_WHITE = 0xf0 # white.
 # get handle
 std_out_handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
 
+
 def set_cmd_text_color(color, handle=std_out_handle):
     Bool = ctypes.windll.kernel32.SetConsoleTextAttribute(handle, color)
     return Bool
 
-#reset white
+
+# reset white
 def resetColor():
     set_cmd_text_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
 
 ###############################################################
 
-#暗蓝色
-#dark blue
+# 暗蓝色
+# dark blue
 def printDarkBlue(mess):
     set_cmd_text_color(FOREGROUND_DARKBLUE)
     sys.stdout.write(mess)
     resetColor()
 
-#暗绿色
-#dark green
+# 暗绿色
+# dark green
 def printDarkGreen(mess):
     set_cmd_text_color(FOREGROUND_DARKGREEN)
     sys.stdout.write(mess)
     resetColor()
 
-#暗天蓝色
-#dark sky blue
+# 暗天蓝色
+# dark sky blue
 def printDarkSkyBlue(mess):
     set_cmd_text_color(FOREGROUND_DARKSKYBLUE)
     sys.stdout.write(mess)
     resetColor()
 
-#暗红色
-#dark red
+# 暗红色
+# dark red
 def printDarkRed(mess):
     set_cmd_text_color(FOREGROUND_DARKRED)
     sys.stdout.write(mess)
     resetColor()
 
-#暗粉红色
-#dark pink
+# 暗粉红色
+# dark pink
 def printDarkPink(mess):
     set_cmd_text_color(FOREGROUND_DARKPINK)
     sys.stdout.write(mess)
     resetColor()
 
-#暗黄色
-#dark yellow
+# 暗黄色
+# dark yellow
 def printDarkYellow(mess):
     set_cmd_text_color(FOREGROUND_DARKYELLOW)
     sys.stdout.write(mess)
     resetColor()
 
-#暗白色
-#dark white
+# 暗白色
+# dark white
 def printDarkWhite(mess):
     set_cmd_text_color(FOREGROUND_DARKWHITE)
     sys.stdout.write(mess)
     resetColor()
 
-#暗灰色
-#dark gray
+# 暗灰色
+# dark gray
 def printDarkGray(mess):
     set_cmd_text_color(FOREGROUND_DARKGRAY)
     sys.stdout.write(mess)
     resetColor()
 
-#蓝色
-#blue
+# 蓝色
+# blue
 def printBlue(mess):
     set_cmd_text_color(FOREGROUND_BLUE)
     sys.stdout.write(mess)
     resetColor()
 
-#绿色
-#green
+# 绿色
+# green
 def printGreen(mess):
     set_cmd_text_color(FOREGROUND_GREEN)
     sys.stdout.write(mess)
     resetColor()
 
-#天蓝色
-#sky blue
+# 天蓝色
+# sky blue
 def printSkyBlue(mess):
     set_cmd_text_color(FOREGROUND_SKYBLUE)
     sys.stdout.write(mess)
     resetColor()
 
-#红色
-#red
+# 红色
+# red
 def printRed(mess):
     set_cmd_text_color(FOREGROUND_RED)
     sys.stdout.write(mess)
     resetColor()
 
-#粉红色
-#pink
+# 粉红色
+# pink
 def printPink(mess):
     set_cmd_text_color(FOREGROUND_PINK)
     sys.stdout.write(mess)
     resetColor()
 
-#黄色
-#yellow
+# 黄色
+# yellow
 def printYellow(mess):
     set_cmd_text_color(FOREGROUND_YELLOW)
     sys.stdout.write(mess)
     resetColor()
 
-#白色
-#white
+# 白色
+# white
 def printWhite(mess):
     set_cmd_text_color(FOREGROUND_WHITE)
     sys.stdout.write(mess)
@@ -226,23 +229,23 @@ def printWhite(mess):
 
 ##################################################
 
-#白底黑字
-#white bkground and black text
+# 白底黑字
+# white bkground and black text
 def printWhiteBlack(mess):
     set_cmd_text_color(FOREGROUND_BLACK | BACKGROUND_WHITE)
     sys.stdout.write(mess)
     resetColor()
 
-#白底黑字
-#white bkground and black text
+# 白底黑字
+# white bkground and black text
 def printWhiteBlack_2(mess):
     set_cmd_text_color(0xf0)
     sys.stdout.write(mess)
     resetColor()
 
 
-#黄底蓝字
-#white bkground and black text
+# 黄底蓝字
+# white bkground and black text
 def printYellowRed(mess):
     set_cmd_text_color(BACKGROUND_YELLOW | FOREGROUND_RED)
     sys.stdout.write(mess)
@@ -382,8 +385,8 @@ def show_hosts():
 
 def open_dir(path):
     cmd = 'explorer.exe /e, /root, "%s\\"' % path
-    BavLog.info('open %s'% path)
-    call(cmd , shell=False, wait=False)
+    BavLog.info('open %s' % path)
+    call(cmd, shell=False, wait=False)
 
 
 @upload
@@ -541,7 +544,7 @@ class Icon(QtGui.QWidget):
         for index, i in enumerate(lis):
             item = QtGui.QPushButton(i['button_name'])
             item.setGeometry(10, 10 + index*self.item_hight,
-            250, self.item_hight )
+                             250, self.item_hight)
             self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
             grid.addWidget(item, index, 0)
             '''
@@ -563,7 +566,6 @@ class Icon(QtGui.QWidget):
         (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
         return bav_install_path
 
-
     @upload
     def backup_dump(self):
         bav_install_path = self.get_bav_install_path()
@@ -573,8 +575,8 @@ class Icon(QtGui.QWidget):
         des_dir = os.path.join(LOCAL_DIR, 'dump')
         backup(bav_dump_path, des_dir)
         cmd = 'explorer.exe /e, /root, "%s\\"' % LOCAL_DIR
-        BavLog.info('open %s'% LOCAL_DIR)
-        call(cmd , shell=False, wait=False)
+        BavLog.info('open %s' % LOCAL_DIR)
+        call(cmd, shell=False, wait=False)
 
     @upload
     def open_insatll_dir(self):
@@ -591,8 +593,10 @@ class Icon(QtGui.QWidget):
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.geometry()
-        self.move((screen.width() - size.width()) / 2,
-                 (screen.height() - size.height()) / 2)
+        self.move(
+            (screen.width() - size.width()) / 2,
+            (screen.height() - size.height()) / 2
+        )
 
     def show_download_dialog(self):
         text, ok = QtGui.QInputDialog.getText(
@@ -614,7 +618,7 @@ class Icon(QtGui.QWidget):
                 download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % md5
                 c = Downloader(md5, download_url)
                 c.start()
-                BavLog.debug('download %s'% md5)
+                BavLog.debug('download %s' % md5)
             else:
                 BavLog.error('md5: %s is wrong' % md5)
 
@@ -668,9 +672,10 @@ class Downloader(threading.Thread):
         if ret:
             open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
+
 @upload
 def download_file(file_name, download_url):
-    #TODO del file
+    # TODO del file
     ret = False
     try:
         f = urllib2.urlopen(download_url, timeout=10)
