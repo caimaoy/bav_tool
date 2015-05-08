@@ -13,7 +13,8 @@ import win32serviceutil
 import win32service
 import win32event
 
-class PythonService(win32serviceutil.ServiceFramework):
+class WatchBAVDumpService(win32serviceutil.ServiceFramework):
+# class PythonService(win32serviceutil.ServiceFramework):
     """
     Usage: 'PythonService.py [options] install|update|remove|start [...]|stop|restart [...]|debug [...]'
     Options for 'install' and 'update' commands only:
@@ -31,11 +32,11 @@ class PythonService(win32serviceutil.ServiceFramework):
                      the specified period.
     """
     #服务名
-    _svc_name_ = "aPythonService"
+    _svc_name_ = 'WatchBAVDumpService'
     #服务显示名称
-    _svc_display_name_ = "aPython Service Demo"
+    _svc_display_name_ = '监控BAV dump'
     #服务描述
-    _svc_description_ = "aPython service demo."
+    _svc_description_ = u'用于监控BAV dump 文件夹'
 
     def __init__(self, args):
         win32serviceutil.ServiceFramework.__init__(self, args)
@@ -48,7 +49,7 @@ class PythonService(win32serviceutil.ServiceFramework):
         import os
         import inspect
 
-        logger = logging.getLogger('[PythonService]')
+        logger = logging.getLogger('[WatchBAVDumpService]')
 
         this_file = inspect.getfile(inspect.currentframe())
         dirpath = os.path.abspath(os.path.dirname(this_file))
@@ -80,5 +81,4 @@ class PythonService(win32serviceutil.ServiceFramework):
         self.isAlive = False
 
 if __name__=='__main__':
-    win32serviceutil.HandleCommandLine(PythonService)
-    # PythonService(['start'])
+    win32serviceutil.HandleCommandLine(WatchBAVDumpService)

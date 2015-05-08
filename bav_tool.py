@@ -399,6 +399,18 @@ def open_dir(path):
 def open_hosts_dir():
     open_dir(HOST_DIR)
 
+def get_bav_install_path():
+    # TODO add try if not install BAV
+    k = _winreg.HKEY_LOCAL_MACHINE
+    if is_64_windows():
+        sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+    else:
+        sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+    key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
+    name = 'InstallDir'
+    (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
+    return bav_install_path
+
 
 class HostWidget(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -569,6 +581,7 @@ class Icon(QtGui.QWidget):
         self.setLayout(grid)
         self.center()
 
+    '''
     def get_bav_install_path(self):
         k = _winreg.HKEY_LOCAL_MACHINE
         if self.is_64_windows:
@@ -579,10 +592,11 @@ class Icon(QtGui.QWidget):
         name = 'InstallDir'
         (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
         return bav_install_path
+    '''
 
     @upload
     def backup_dump(self):
-        bav_install_path = self.get_bav_install_path()
+        bav_install_path = get_bav_install_path()
         BavLog.debug('BAV install dir:\n%s' % bav_install_path)
         bav_dump_path = os.path.join(bav_install_path, 'dump')
         BavLog.debug('BAV dump dir:\n%s' % bav_dump_path)
@@ -594,7 +608,7 @@ class Icon(QtGui.QWidget):
 
     @upload
     def open_insatll_dir(self):
-        bav_install_path = self.get_bav_install_path()
+        bav_install_path = get_bav_install_path()
         self.open_dir(bav_install_path)
 
     @upload
@@ -747,6 +761,9 @@ def download_file(file_name, download_url):
 
 
 if __name__ == '__main__':
+    from watch_dir import WatchBAVDumpDir
+    w = WatchBAVDumpDir()
+    w.start()
     app = QtGui.QApplication(sys.argv)
     icon = Icon()
     icon.show()
