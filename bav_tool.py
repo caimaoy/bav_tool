@@ -272,6 +272,7 @@ HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
 BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
 WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
+BAV_DISPOSE_UPDATE_URL = r'start chrome http://hkg02-inf-deploy00.hkg02.baidu.com:8080/autoUpdate/auto_deploy_rebuild/index.php?m=Update&a=add&'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -306,6 +307,11 @@ def download_white_sample():
     call(WHITE_SAMPLE_URL, False)
 
 
+@upload
+def bav_dispose_update_url():
+    call(BAV_DISPOSE_UPDATE_URL, False)
+
+
 def kill_process(name):
     os.system(r'taskkill /f /im %s' % name)
 
@@ -337,7 +343,7 @@ def backup(src, des, backup_name='_backup'):
                 shutil.copytree(src, des_path)
 
         except Exception as e:
-            BavLog.error(e)
+            BavLog.error(repr(e))
         else:
             copy_fail = False
 
@@ -532,6 +538,14 @@ class Icon(QtGui.QWidget):
             'button_name': u'合并csv文件，得到MD5文件',
             'function': self.show_merge_csv_file
         },
+        {
+            'button_name': u'通过md5文件下载样本',
+            'function': self.download_sample_from_file
+        },
+        {
+            'button_name': u'升级部署URL',
+            'function': bav_dispose_update_url
+        },
         ]
 
         self.window_width = self.item_width + 20
@@ -654,9 +668,43 @@ class Icon(QtGui.QWidget):
             try:
                 find_all_hash_in_csv_of_dir(csv_dir)
             except Exception as e:
-                print e
+                BavLog.error(repr(e))
         else:
             return
+
+
+    def download_sample_from_file(self):
+        md5_file = QtGui.QFileDialog.getOpenFileName(
+            self,
+            u'请输入md5文件',
+            './'
+        )
+        md5_file = unicode(md5_file)
+        if md5_file:
+            BavLog.debug('md5_file is %s' % md5_file)
+            try:
+                d = DownloaderFromFile(md5_file)
+                d.start()
+            except Exception as e:
+                BavLog.error(repr(e))
+        else:
+            return
+
+
+class DownloaderFromFile(threading.Thread):
+    def __init__(self, md5_file):
+        super(DownloaderFromFile, self).__init__()
+        self.md5_file = md5_file
+
+    def run(self):
+        '''@summary: 重写父类run方法，在线程启动后执行该方法内的代码。
+        '''
+
+        from multi_threading_download import download_from_file
+        download_from_file(self.md5_file)
+        # TODO bug
+        # dir_name = os.path.dirname(self.md5_file)
+        # open_dir(dir_name.encode('gbk'))
 
 
 class Downloader(threading.Thread):
