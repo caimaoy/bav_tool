@@ -15,18 +15,21 @@ import win32file
 import win32con
 import shutil
 import threading
+import time
 
-from bav_tool import get_bav_install_path
+from bav_tool import get_bav_install_path, BavLog, upload
 
 class WatchBAVDumpDir(threading.Thread):
     def __init__(self):
         super(WatchBAVDumpDir, self).__init__()
         self.bav_install_path = get_bav_install_path()
         self.bav_dump = os.path.join(self.bav_install_path, 'dump')
-        print self.bav_dump
-        self.des_dir = 'c:\\bavdump'
+        self.des_dir = r'c:\bav_dump'
+        BavLog.info(u'此应用会自动监控BAV dump文件夹，帮您捕捉卸载dump')
 
     def run(self):
+        u = Upload()
+        u.run()
         try:
             os.mkdir(self.des_dir)
         except:
@@ -78,11 +81,36 @@ class WatchBAVDumpDir(threading.Thread):
                 full_filename = os.path.join(self.bav_dump, file)
                 # print full_filename, ACTIONS.get (action, "Unknown")
                 end_list = ['dmp', 'txt', 'zip']
-                if ACTIONS.get(action, 'Unknown') == 'Updated':
+                a = ACTIONS.get(action, 'Unknown')
+                if a == 'Updated':
                     for e in end_list:
                         if full_filename.endswith(e):
-                            print 'my: ' + full_filename
-                            shutil.copyfile(full_filename, os.path.join(self.des_dir , file))
+                            BavLog.debug('%s %s' % (full_filename, a))
+                            shutil.copyfile(full_filename,
+                                            os.path.join(self.des_dir , file))
+                            BavLog.error('Please open dir, %s' % self.des_dir)
+
+class Upload(threading.Thread):
+    def __init__(self):
+        super(Upload, self).__init__()
+        self.upload_period = 30*60
+        self.start_time = time.time()
+
+    @upload
+    def watch_bav_dump_dir(self):
+        pass
+
+    def check_upload_time(self):
+        delta_time = time.time() - self.start_time
+        if delta_time > self.upload_period:
+            self.watch_bav_dump_dir()
+
+    def run(self):
+        self.watch_bav_dump_dir()
+        while True:
+            self.check_upload_time()
+            time.sleep(1)
+
 
 if __name__ == '__main__':
     pass
