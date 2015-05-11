@@ -87,8 +87,13 @@ class WatchBAVDumpDir(threading.Thread):
                     for e in end_list:
                         if full_filename.endswith(e):
                             BavLog.debug('%s %s' % (full_filename, a))
-                            shutil.copyfile(full_filename,
-                                            os.path.join(self.des_dir , file))
+                            try:
+                                shutil.copyfile(
+                                    full_filename,
+                                    os.path.join(self.des_dir , file)
+                                )
+                            except Exception as e:
+                                BavLog.error(repr(e))
                             BavLog.error('Please open dir, %s' % self.des_dir)
 
 class Upload(threading.Thread):
