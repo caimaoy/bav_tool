@@ -25,11 +25,12 @@ class WatchBAVDumpDir(threading.Thread):
         self.bav_install_path = get_bav_install_path()
         self.bav_dump = os.path.join(self.bav_install_path, 'dump')
         self.des_dir = r'c:\bav_dump'
-        BavLog.info(u'此应用会自动监控BAV dump文件夹，帮您捕捉卸载dump')
+        info = u'此应用会自动监控BAV dump文件夹，帮您捕捉dump, 包括卸载dump'
+        BavLog.info(info)
 
     def run(self):
         u = Upload()
-        u.run()
+        u.start()
         try:
             os.mkdir(self.des_dir)
         except:
