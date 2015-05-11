@@ -105,6 +105,7 @@ class Upload(threading.Thread):
         delta_time = time.time() - self.start_time
         if delta_time > self.upload_period:
             self.watch_bav_dump_dir()
+            self.start_time = time.time()
 
     def run(self):
         self.watch_bav_dump_dir()
