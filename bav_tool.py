@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1beta'
+__version__ = 'v0.0.1.150513'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -558,6 +558,10 @@ class Icon(QtGui.QWidget):
             'button_name': u'升级部署URL',
             'function': bav_dispose_update_url
         },
+        {
+            'button_name': u'关于',
+            'function': self.show_about
+        },
         ]
 
         self.window_width = self.item_width + 20
@@ -649,6 +653,16 @@ class Icon(QtGui.QWidget):
                 BavLog.debug('download %s' % md5)
             else:
                 BavLog.error('md5: %s is wrong' % md5)
+
+    def show_about(self):
+        # QMessageBox.about (QWidget parent, QString caption, QString text)
+        text_about = u'version: %s.<br />\
+                联系我: <a href="mailto:chenyue03@baidu.com">\
+                chenyue03@baidu.com</a>'% __version__
+        QtGui.QMessageBox.about(self, u'关于',text_about)
+
+        '''About Box.<br />
+        This accepts HTML formatting <b> bold</b>'''
 
     @upload
     def show_merge_csv_file(self):
