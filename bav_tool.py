@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.150513'
+__version__ = 'v0.0.1.150521'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -272,7 +272,8 @@ HOST_BASE_NAME = os.path.basename(HOST_PATH)
 BAV_CHECKLIST_URL = r'start chrome http://bav-checklist.readthedocs.org/zh_CN/latest/'
 BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
 WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
-BAV_DISPOSE_UPDATE_URL = r'start chrome http://hkg02-inf-deploy00.hkg02.baidu.com:8080/autoUpdate/auto_deploy_rebuild/index.php?m=Update&a=add&'
+BAV_DISPOSE_UPDATE_URL = r'start chrome http://hkg02-sys-web51.hkg02.baidu.com:8080/autoUpdate/auto_deploy_rebuild/index.php?m=Op&a=onlineRules&'
+BAV_UPDATE_DOC_URL = r'start chrome http://caimaoy.gitbooks.io/doc_bav/content/'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -311,6 +312,9 @@ def download_white_sample():
 def bav_dispose_update_url():
     call(BAV_DISPOSE_UPDATE_URL, False)
 
+@upload
+def bav_update_doc_url():
+    call(BAV_UPDATE_DOC_URL, False)
 
 def kill_process(name):
     os.system(r'taskkill /f /im %s' % name)
@@ -553,6 +557,10 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'通过md5文件下载样本',
             'function': self.download_sample_from_file
+        },
+        {
+            'button_name': u'升级各种文档',
+            'function': bav_update_doc_url
         },
         {
             'button_name': u'升级部署URL',
