@@ -15,10 +15,12 @@ import ctypes
 import json
 import shutil
 import os
+import re
 import subprocess
 import sys
 import socket
 import threading
+import time
 import urllib
 import urllib2
 import _winreg
@@ -252,18 +254,27 @@ def printYellowRed(mess):
     resetColor()
 
 
+def get_current_format_time():
+    return time.strftime('[%H:%M:%S] ')
+
+
 class BavLog(object):
     @staticmethod
+    def base_print(func, mess):
+        mess = [get_current_format_time(), mess, '\n']
+        func(''.join(mess))
+
+    @staticmethod
     def info(mess):
-        printGreen(mess + '\n')
+        BavLog.base_print(printGreen, mess)
 
     @staticmethod
     def debug(mess):
-        printDarkGray(mess + '\n')
+        BavLog.base_print(printDarkGray, mess)
 
     @staticmethod
     def error(mess):
-        printRed(mess + '\n')
+        BavLog.base_print(printRed, mess)
 
 
 HOST_PATH = r'C:\Windows\System32\drivers\etc\hosts'
@@ -359,7 +370,9 @@ def backup_hosts():
 def cat(path):
     with open(path, 'r') as f:
         for i in f:
-            BavLog.info(i)
+            if re.match('^\s*\n$', i):
+                continue
+            BavLog.info(i.replace('\n', ''))
 
 
 @upload
@@ -389,7 +402,7 @@ def is_64_windows():
 
 @upload
 def show_hosts():
-    BavLog.info('hosts:')
+    BavLog.info('------hosts------- ')
     cat(HOST_PATH)
 
 
@@ -609,9 +622,9 @@ class Icon(QtGui.QWidget):
     @upload
     def backup_dump(self):
         bav_install_path = get_bav_install_path()
-        BavLog.debug('BAV install dir:\n%s' % bav_install_path)
+        BavLog.debug('BAV install dir: %s' % bav_install_path)
         bav_dump_path = os.path.join(bav_install_path, 'dump')
-        BavLog.debug('BAV dump dir:\n%s' % bav_dump_path)
+        BavLog.debug('BAV dump dir: %s' % bav_dump_path)
         des_dir = os.path.join(LOCAL_DIR, 'dump')
         backup(bav_dump_path, des_dir)
         cmd = 'explorer.exe /e, /root, "%s\\"' % LOCAL_DIR
