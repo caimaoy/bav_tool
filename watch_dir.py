@@ -29,6 +29,12 @@ class WatchBAVDumpDir(threading.Thread):
         BavLog.info(info)
 
     def run(self):
+        if os.path.exists(self.bav_dump):
+            self.watch_dump()
+        else:
+            BavLog.error(u'没有安装BAV')
+
+    def watch_dump(self):
         u = Upload()
         u.start()
         try:
