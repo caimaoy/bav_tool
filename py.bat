@@ -8,4 +8,4 @@ set source_file=bav_tool.py
 sed -i "s/'v0.0.1\..*'/'v0.0.1.%version%'/g" %source_file%
 
 
-pyinstaller -F %source_file%
+pyinstaller -F %source_file% --icon=python.ico
