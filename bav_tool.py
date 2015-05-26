@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.150521'
+__version__ = 'v0.0.1.20150526'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -45,9 +45,6 @@ def upload(func):
         # BavLog.info(func.__name__)
         post_context = {}
         post_context['function_name'] = func.__name__
-        # post_context['function_name'] = func.__name__
-        # print post_context
-        # r = requests.post(bav_conf.UPLOAD_URL, data=post_context)
         try:
             f = urllib2.urlopen(
                 url=bav_conf.UPLOAD_URL,
@@ -285,6 +282,8 @@ BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sampl
 WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
 BAV_DISPOSE_UPDATE_URL = r'start chrome http://hkg02-sys-web51.hkg02.baidu.com:8080/autoUpdate/auto_deploy_rebuild/index.php?m=Op&a=onlineRules&'
 BAV_UPDATE_DOC_URL = r'start chrome http://caimaoy.gitbooks.io/doc_bav/content/'
+BAV_ENGINE_SCAN_RESULT = r'start chrome http://wiki.baidu.com/pages/viewpage.action?pageId=96210979'
+BAV_ENGINE_TYPE = r'start chrome http://wiki.baidu.com/pages/viewpage.action?pageId=96210921'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -323,9 +322,21 @@ def download_white_sample():
 def bav_dispose_update_url():
     call(BAV_DISPOSE_UPDATE_URL, False)
 
+
+@upload
+def bav_engine_type_url():
+    call(BAV_ENGINE_TYPE, False)
+
+
+@upload
+def bav_engine_scan_result_url():
+    call(BAV_ENGINE_SCAN_RESULT, False)
+
+
 @upload
 def bav_update_doc_url():
     call(BAV_UPDATE_DOC_URL, False)
+
 
 def kill_process(name):
     os.system(r'taskkill /f /im %s' % name)
@@ -580,6 +591,14 @@ class Icon(QtGui.QWidget):
             'function': bav_dispose_update_url
         },
         {
+            'button_name': u'引擎掩码',
+            'function': bav_engine_type_url
+        },
+        {
+            'button_name': u'引擎扫描结果掩码',
+            'function': bav_engine_scan_result_url
+        },
+        {
             'button_name': u'关于',
             'function': self.show_about
         },
@@ -605,19 +624,6 @@ class Icon(QtGui.QWidget):
             '''
         self.setLayout(grid)
         self.center()
-
-    '''
-    def get_bav_install_path(self):
-        k = _winreg.HKEY_LOCAL_MACHINE
-        if self.is_64_windows:
-            sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
-        else:
-            sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
-        key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
-        name = 'InstallDir'
-        (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
-        return bav_install_path
-    '''
 
     @upload
     def backup_dump(self):
