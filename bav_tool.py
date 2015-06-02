@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150526'
+__version__ = 'v0.0.1.20150601'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -25,6 +25,8 @@ import urllib
 import urllib2
 import _winreg
 
+import images_rc
+
 from PyQt4 import QtGui, QtCore
 from conf import bav_conf
 # import requests 我也想用requests啊， 但是32位打包exe后在64有Runtime Error
@@ -34,6 +36,11 @@ STD_INPUT_HANDLE = -10
 STD_OUTPUT_HANDLE = -11
 STD_ERROR_HANDLE = -12
 
+USER_TOKEN = '33E61AC5272DEE05F75A47818E2BDE98'
+# 线下
+# USER_TOKEN = 'ca133c2a6566b10e1119699feba3167d'
+
+print_lock = threading.RLock()
 
 import functools
 
@@ -117,7 +124,8 @@ def set_cmd_text_color(color, handle=std_out_handle):
 
 # reset white
 def resetColor():
-    set_cmd_text_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+    # set_cmd_text_color(FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE)
+    set_cmd_text_color(FOREGROUND_GREEN)
 
 ###############################################################
 
@@ -173,9 +181,11 @@ def printDarkWhite(mess):
 # 暗灰色
 # dark gray
 def printDarkGray(mess):
+    print_lock.acquire()
     set_cmd_text_color(FOREGROUND_DARKGRAY)
     sys.stdout.write(mess)
     resetColor()
+    print_lock.release()
 
 # 蓝色
 # blue
@@ -187,9 +197,11 @@ def printBlue(mess):
 # 绿色
 # green
 def printGreen(mess):
+    print_lock.acquire()
     set_cmd_text_color(FOREGROUND_GREEN)
     sys.stdout.write(mess)
     resetColor()
+    print_lock.release()
 
 # 天蓝色
 # sky blue
@@ -201,9 +213,11 @@ def printSkyBlue(mess):
 # 红色
 # red
 def printRed(mess):
+    print_lock.acquire()
     set_cmd_text_color(FOREGROUND_RED)
     sys.stdout.write(mess)
     resetColor()
+    print_lock.release()
 
 # 粉红色
 # pink
@@ -445,7 +459,8 @@ class HostWidget(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         self.setGeometry(300, 300, 275, 550)
         self.setWindowTitle(u'hosts助手')
-        self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
+        # self.setWindowIcon(QtGui.QIcon('icon/:/images/logo.png'))
+        self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
 
         self.item_width = 250
         self.item_hight = 30
@@ -495,7 +510,7 @@ class ChecklistWidget(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         self.setGeometry(300, 300, 275, 550)
         self.setWindowTitle(u'checklist助手')
-        self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
+        self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
 
         self.item_width = 250
         self.item_hight = 30
@@ -537,7 +552,8 @@ class Icon(QtGui.QWidget):
 
         self.setGeometry(300, 300, 275, 550)
         self.setWindowTitle('Bav_tools %s' % __version__)
-        self.setWindowIcon(QtGui.QIcon('icon/logo.png'))
+        # self.setWindowIcon(QtGui.QIcon('icon/:/images/logo.png'))
+        self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
 
         '''
         self.connect(quit, QtCore.SIGNAL('clicked()'), QtGui.qApp,
@@ -597,6 +613,10 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'引擎扫描结果掩码',
             'function': bav_engine_scan_result_url
+        },
+        {
+            'button_name': u'工具升级',
+            'function': tooluploader
         },
         {
             'button_name': u'关于',
@@ -800,6 +820,86 @@ def download_file(file_name, download_url):
         ret = True
     return ret
 
+from progressbar import *
+
+def tooluploader():
+    t = ToolUploader()
+    t.start()
+
+# class ToolUploader():
+class ToolUploader(threading.Thread):
+    def __init__(self):
+        super(ToolUploader, self).__init__()
+        self.current_version = __version__
+
+        self.localfile = r'update\bav_tool.exe'
+        self.localfile = os.path.join(LOCAL_DIR, self.localfile)
+        self.loacaldir = os.path.dirname(self.localfile)
+        self.get_last_tool_url = 'http://client.baidu.com:8811/webapi/toolupdate/getLastTool'
+        self.last_version_response = self.get_the_last_version_response()
+
+    def cbk(self, a, b, c):
+
+        '''
+        回调函数
+
+        @a: 已经下载的数据块
+
+        @b: 数据块的大小
+
+        @c: 远程文件的大小
+        '''
+
+        w=['Progress: ', Percentage(), ' ', Bar(marker=RotatingMarker('>-=')),' ',
+        ETA(), ' ', FileTransferSpeed()]
+        pbar=ProgressBar(widgets=w, maxval=100).start()
+
+        per = 100.0 * a * b / c
+        if per < 100:
+            pbar.update(int(per))
+        else:
+            pbar.update(int(per))
+            pbar.finish()
+
+    def update(self, url_file):
+        if not os.path.exists(self.loacaldir):
+            try:
+                os.mkdir(self.loacaldir)
+            except Exception as e:
+                BavLog.error(repr(e))
+                BavLog.error('What a shame! Cannot update')
+        BavLog.info(u'马上下载最新版本工具，请手动替换')
+        cmd = 'start %s' % url_file
+        call(cmd, False)
+
+    def run(self):
+        self.get_the_last_version()
+
+    def get_the_last_version_response(self):
+        a = None
+        try:
+            response = urllib2.urlopen(
+                url=self.get_last_tool_url,
+                data=urllib.urlencode({'user_token':USER_TOKEN})
+            )
+            a = json.load(response)
+        except Exception as e:
+            BavLog.error(repr(e))
+        return a
+
+    def get_the_last_version(self):
+        reg_success = r'success'
+        if (self.last_version_response and
+            re.search(reg_success,
+                      self.last_version_response.get('msg', None))):
+            last_version = self.last_version_response.get('version')
+            if last_version == self.current_version:
+                BavLog.info(u'您已经是最想版本')
+            else:
+                BavLog.info(u'您现在不是最新版本')
+                self.update(self.last_version_response.get('path'))
+        else:
+            BavLog.error(u'返回升级信息失败')
 
 if __name__ == '__main__':
     from watch_dir import WatchBAVDumpDir
