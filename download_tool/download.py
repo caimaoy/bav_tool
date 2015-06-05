@@ -10,14 +10,13 @@ Edit time: 2014-11-04 16:10:41
 File name: download.py
 Edit by caimaoy
 '''
+import argparse
 import os
 import threading
 
 import st_log as log
 
 log = log.init_log('log/download')
-log.debug('init download.log')
-
 
 
 # 下载命令行 你需要wget 或者也可以换成pytho库自己下载
@@ -38,9 +37,6 @@ download_abs_dir = os.path.join(base_path, download_dir)
 abs_filename = os.path.join(base_path, file_name)
 
 wget_path = os.path.join(base_path, 'bin/wget.exe')
-# pyinstaller path
-# wget_path = os.path.join(base_path, 'bin/wget.exe')
-# wget_path = ''.join(['\"', wget_path, '\"'])
 wget_argv = '-O %s'
 download_url = 'store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s'
 
@@ -78,7 +74,7 @@ def _readline_and_download(md5):
     mutex.release()
 
 
-def main():
+def file_download(abs_filename):
     """默认读取md5.txt文件 创建download文件夹，启用多线程下载，我很懒不写命令行
     参数了
 
@@ -105,6 +101,53 @@ def main():
     pool.close()
     pool.join()
 
+def singlenton(cls, *args, **kw):
+    '''
+    单例类装饰器
+    '''
+    instances = {}
+    def _singlenton():
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+    return _singlenton
+
+
+@singlenton
+class ToolInfo(object):
+
+    def __init__(self):
+        self.file_path = __file__
+        self.file_dir = os.path.dirname(os.path.abspath(self.file_path))
+        self.version = 'No Info'
+        self.get_version()
+
+    def get_version(self):
+        self._version_file = os.path.join(self.file_dir, 'version')
+        self.version = None
+        try:
+            f = open(self._version_file, 'r')
+            self.version = f.read()
+        except Exception as e:
+            print e
+            self.version = 'No Info'
+
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    # parser.add_argument('md5_file', help=u'包含MD5的文件', default='md5.txt')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-f', '--md5_file', default='md5.txt', help=u'包含md5的文件')
+    group.add_argument('-m', '--md5', type=str, help=u'单一的md5')
+    group.add_argument('-v', '--version', action='store_true')
+    # parser.add_argument('-v', '--verbose', help=u'increse output verbosity', action='store_true')
+    args = parser.parse_args()
+    version_file = 'version'
+    if args.md5:
+        print 'download with md5'
+        print args.md5
+    elif args.version:
+        print ToolInfo().version
+    else:
+        file_download(os.path.abspath(args.md5_file))
+
