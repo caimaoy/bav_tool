@@ -828,15 +828,13 @@ def tooluploader():
 
 # class ToolUploader():
 class ToolUploader(threading.Thread):
-    def __init__(self):
+    def __init__(self, status='buttom'):
         super(ToolUploader, self).__init__()
         self.current_version = __version__
-
-        self.localfile = r'update\bav_tool.exe'
-        self.localfile = os.path.join(LOCAL_DIR, self.localfile)
-        self.loacaldir = os.path.dirname(self.localfile)
         self.get_last_tool_url = 'http://client.baidu.com:8811/webapi/toolupdate/getLastTool'
-        self.last_version_response = self.get_the_last_version_response()
+        self.last_version_response = None
+        # self.last_version_response = self.get_the_last_version_response()
+        self.status = status
 
     def cbk(self, a, b, c):
 
@@ -862,18 +860,15 @@ class ToolUploader(threading.Thread):
             pbar.finish()
 
     def update(self, url_file):
-        if not os.path.exists(self.loacaldir):
-            try:
-                os.mkdir(self.loacaldir)
-            except Exception as e:
-                BavLog.error(repr(e))
-                BavLog.error('What a shame! Cannot update')
         BavLog.info(u'马上下载最新版本工具，请手动替换')
         cmd = 'start %s' % url_file
         call(cmd, False)
 
     def run(self):
-        self.get_the_last_version()
+        if self.status == 'buttom':
+            self.get_the_last_version()
+        elif self.status == 'watch':
+            self.watch()
 
     def get_the_last_version_response(self):
         a = None
@@ -887,24 +882,41 @@ class ToolUploader(threading.Thread):
             BavLog.error(repr(e))
         return a
 
-    def get_the_last_version(self):
+    def need_update(self):
+        self.last_version_response = self.get_the_last_version_response()
+        ret = False
         reg_success = r'success'
         if (self.last_version_response and
             re.search(reg_success,
                       self.last_version_response.get('msg', None))):
             last_version = self.last_version_response.get('version')
             if last_version == self.current_version:
-                BavLog.info(u'您已经是最想版本')
+                ret = False
             else:
-                BavLog.info(u'您现在不是最新版本')
-                self.update(self.last_version_response.get('path'))
+                ret = True
+        return ret
+
+    @upload
+    def get_the_last_version(self):
+        if self.need_update():
+            BavLog.info(u'您现在不是最新版本')
+            self.update(self.last_version_response.get('path'))
         else:
-            BavLog.error(u'返回升级信息失败')
+            BavLog.info(u'您已经是最新版本')
+
+    def watch(self):
+        if self.need_update():
+            BavLog.info(u'您现在不是最新版本, 请点击工具升级进行升级')
+        else:
+            BavLog.info(u'您已经是最新版本')
+
 
 if __name__ == '__main__':
     from watch_dir import WatchBAVDumpDir
     w = WatchBAVDumpDir()
     w.start()
+    t = ToolUploader('watch')
+    t.start()
     app = QtGui.QApplication(sys.argv)
     icon = Icon()
     icon.show()
