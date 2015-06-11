@@ -9,8 +9,12 @@ Edit by caimaoy
 
 __author__ = 'caimaoy'
 
+import sys
+sys.path.append('..')
 
-BAV_HOST = {
+import const
+
+const.BAV_HOST = {
     'update_hosts':
     '''
 10.242.108.23 download.antivirus.baidu.com
@@ -38,9 +42,9 @@ BAV_HOST = {
     'clean':''
 }
 
-UPLOAD_URL = r'http://client.baidu.com:8775/count/chenyue_tool_count.php'
+const.UPLOAD_URL = r'http://client.baidu.com:8775/count/chenyue_tool_count.php'
 
 
 
 if __name__ == '__main__':
-    print BAV_HOST['update_hosts']
+    print const.BAV_HOST['update_hosts']

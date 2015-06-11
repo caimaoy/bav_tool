@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150601'
+__version__ = 'v0.0.1.20150611'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -28,7 +28,7 @@ import _winreg
 import images_rc
 
 from PyQt4 import QtGui, QtCore
-from conf import bav_conf
+from conf.bav_conf import const
 # import requests 我也想用requests啊， 但是32位打包exe后在64有Runtime Error
 
 
@@ -44,7 +44,6 @@ print_lock = threading.RLock()
 
 import functools
 
-
 def upload(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -54,7 +53,7 @@ def upload(func):
         post_context['function_name'] = func.__name__
         try:
             f = urllib2.urlopen(
-                url=bav_conf.UPLOAD_URL,
+                url=const.UPLOAD_URL,
                 data=urllib.urlencode(post_context),
                 timeout=2
             )
@@ -418,7 +417,7 @@ def clean_hosts():
 def hosts(k):
     backup_hosts()
     with open(HOST_PATH, 'w') as f:
-        f.write(bav_conf.BAV_HOST[k])
+        f.write(const.BAV_HOST[k])
     show_hosts()
 
 
@@ -560,7 +559,7 @@ class Icon(QtGui.QWidget):
                     QtCore.SLOT('quit()'))
         '''
 
-        self.item_width = 250
+        self.item_width = 300
         self.item_hight = 30
 
         self.hosts_widget = HostWidget()
@@ -634,7 +633,7 @@ class Icon(QtGui.QWidget):
         for index, i in enumerate(lis):
             item = QtGui.QPushButton(i['button_name'])
             item.setGeometry(10, 10 + index*self.item_hight,
-                             250, self.item_hight)
+                             300, self.item_hight)
             self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
             grid.addWidget(item, index, 0)
             '''

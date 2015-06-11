@@ -119,22 +119,19 @@ class ToolInfo(object):
     def __init__(self):
         self.file_path = __file__
         self.file_dir = os.path.dirname(os.path.abspath(self.file_path))
-        self.version = 'No Info'
-        self.get_version()
+        self.version = 'v0.0.0.1.20150608'
 
-    def get_version(self):
-        self._version_file = os.path.join(self.file_dir, 'version')
-        self.version = None
-        try:
-            f = open(self._version_file, 'r')
-            self.version = f.read()
-        except Exception as e:
-            print e
-            self.version = 'No Info'
+
+def download_single_file(md5):
+    _create_dir(download_abs_dir)
+    os.chdir(download_abs_dir)
+    cmd = command % (md5, md5)
+    log.debug(cmd)
+    os.system(cmd)
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(prog='bav_download')
     # parser.add_argument('md5_file', help=u'包含MD5的文件', default='md5.txt')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-f', '--md5_file', default='md5.txt', help=u'包含md5的文件')
@@ -144,10 +141,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     version_file = 'version'
     if args.md5:
-        print 'download with md5'
-        print args.md5
+        download_single_file(args.md5)
     elif args.version:
         print ToolInfo().version
-    else:
+    elif args.md5_file:
         file_download(os.path.abspath(args.md5_file))
+    else:
+        log.error('args Error')
 
