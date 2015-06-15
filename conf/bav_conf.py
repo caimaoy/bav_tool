@@ -45,6 +45,37 @@ const.BAV_HOST = {
 const.UPLOAD_URL = r'http://client.baidu.com:8775/count/chenyue_tool_count.php'
 
 
+# 扫描器类型SCANNER_TYPE
+const.ENGINE_TYPE_DICT = [
+    {'num': 0x00000000L, 'note':u'默认'},
+    {'num': 0x00000001L, 'note':u'超级巡警引擎总开关'},
+    {'num': 0x00000002L, 'note':u'特征云引擎'},
+    {'num': 0x00000004L, 'note':u'小红伞'},
+    {'num': 0x00000008L, 'note':u'二次加速'},
+    {'num': 0x00000010L, 'note':u'超级巡警格式识别模块，默认必须加载'},
+    {'num': 0x00000020L, 'note':u'本地黑白名单病毒库查询模块'},
+    {'num': 0x00000040L, 'note':u'感染式检测模块'},
+    {'num': 0x00000080L, 'note':u'恶意木马检测模块'},
+    {'num': 0x00000100L, 'note':u'文档启发检测模块'},
+    {'num': 0x00000200L, 'note':u'脚本启发检测模块'},
+    {'num': 0x00000400L, 'note':u'数字签名检测模块'},
+    {'num': 0x00000800L, 'note':u'云引擎检测模块'},
+    {'num': 0x00001000L, 'note':u'启发式检测模块'},
+    {'num': 0x00002000L, 'note':u'包裹解压模块'},
+    {'num': 0x00004000L, 'note':u'升级URL库'},
+    {'num': 0x00008000L, 'note':u'主防引擎'},
+    {'num': 0x00010000L, 'note':u'云鉴定工具扫描'},
+    {'num': 0x00020000L, 'note':u'adware过滤'},
+    {'num': 0x00040000L, 'note':u'微特征引擎'},
+    {'num': 0x00080000L, 'note':u'急救箱'},
+    {'num': 0x00100000L, 'note':u'adware微特征云过滤'},
+    {'num': 0x00200000L, 'note':u'应急处理引擎'},
+    {'num': 0x00400000L, 'note':u'病毒免疫引擎'},
+    {'num': 0x00800000L, 'note':u'硬链接识别'},
+    {'num': 0x01000000L, 'note':u'OA防重复扫描识别'},
+    {'num': 0xFFFFFFFFL, 'note':u'全部引擎'},
+]
+
 
 if __name__ == '__main__':
     print const.BAV_HOST['update_hosts']

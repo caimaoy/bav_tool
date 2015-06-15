@@ -12,6 +12,8 @@ __version__ = 'v0.0.1.20150611'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
+import ConfigParser
+import io
 import json
 import shutil
 import os
@@ -72,6 +74,18 @@ def upload(func):
             BavLog.error(repr(e))
         return func(*args, **kwargs)
     return wrapper
+
+def cache(func):
+    """缓存装饰器
+    """
+    caches = {}
+    @functools.wraps(func)
+    def wrapper(*args):
+        if args not in caches:
+            caches[args] = func(*args)
+        return caches[args]
+    return wrapper
+
 
 # 字体颜色定义 ,关键在于颜色编码，由2位十六进制组成，分别取0~f，前一位指的是背景色，后一位指的是字体色
 # 由于该函数的限制，应该是只有这16种，可以前景色与背景色组合。也可以几种颜色通过或运算组合，组合后还是在这16种颜色中
@@ -440,6 +454,7 @@ def open_dir(path):
 def open_hosts_dir():
     open_dir(HOST_DIR)
 
+@cache
 def get_bav_install_path():
     # TODO add try if not install BAV
     k = _winreg.HKEY_LOCAL_MACHINE
@@ -910,7 +925,35 @@ class ToolUploader(threading.Thread):
             BavLog.info(u'您已经是最新版本')
 
 
+
+class BAVConfig(object):
+
+    def __init__(self):
+        self.bav_install_path = get_bav_install_path()
+        self.bav_config_file = 'config.ini'
+        self.bav_config_file = os.path.join(self.bav_install_path,
+                                           self.bav_config_file)
+        if os.path.exists(self.bav_config_file):
+            # cat(self.bav_config_file)
+            self.cf = ConfigParser.ConfigParser()
+            self.cf.readfp(io.open(self.bav_config_file, 'r', encoding='utf-16'))
+            self.engine_type = self.cf.getint('EngineOption', 'engineType')
+        else:
+            BavLog.info(u'没有安装BAV')
+
+        self.engine_type_notes = []
+        for i in const.ENGINE_TYPE_DICT:
+            if self.engine_type & i['num']:
+                self.engine_type_notes.append(i['note'])
+
+        for i in self.engine_type_notes:
+            print i
+
+
+
+
 if __name__ == '__main__':
+    BAVConfig()
     from watch_dir import WatchBAVDumpDir
     w = WatchBAVDumpDir()
     w.start()
