@@ -47,7 +47,6 @@ const.UPLOAD_URL = r'http://client.baidu.com:8775/count/chenyue_tool_count.php'
 
 # 扫描器类型SCANNER_TYPE
 const.ENGINE_TYPE_DICT = [
-    {'num': 0x00000000L, 'note':u'默认'},
     {'num': 0x00000001L, 'note':u'超级巡警引擎总开关'},
     {'num': 0x00000002L, 'note':u'特征云引擎'},
     {'num': 0x00000004L, 'note':u'小红伞'},
@@ -73,7 +72,6 @@ const.ENGINE_TYPE_DICT = [
     {'num': 0x00400000L, 'note':u'病毒免疫引擎'},
     {'num': 0x00800000L, 'note':u'硬链接识别'},
     {'num': 0x01000000L, 'note':u'OA防重复扫描识别'},
-    {'num': 0xFFFFFFFFL, 'note':u'全部引擎'},
 ]
 
 

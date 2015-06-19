@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150611'
+__version__ = 'v0.0.1.20150619'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -49,8 +49,6 @@ import functools
 def upload(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
-        # bav_conf.UPLOAD_URL
-        # BavLog.info(func.__name__)
         post_context = {}
         post_context['function_name'] = func.__name__
         try:
@@ -60,12 +58,8 @@ def upload(func):
                 timeout=2
             )
             a = json.loads(f.read())
-            # BavLog.debug(repr(a))
             if a['status'] is not True:
                 BavLog.error(repr(a))
-        # except Exception as e:
-            # BavLog.debug(e)
-            # URLError
         except socket.error:
             errno, errstr = sys.exc_info()[:2]
             if errno == socket.timeout:
@@ -85,6 +79,17 @@ def cache(func):
             caches[args] = func(*args)
         return caches[args]
     return wrapper
+
+
+def singleton(cls, *args, **kw):
+    '''单例装饰器
+    '''
+    instances = {}
+    def _singleton():
+        if cls not in instances:
+            instances[cls] = cls(*args, **kw)
+        return instances[cls]
+    return _singleton
 
 
 # 字体颜色定义 ,关键在于颜色编码，由2位十六进制组成，分别取0~f，前一位指的是背景色，后一位指的是字体色
@@ -566,7 +571,6 @@ class Icon(QtGui.QWidget):
 
         self.setGeometry(300, 300, 275, 550)
         self.setWindowTitle('Bav_tools %s' % __version__)
-        # self.setWindowIcon(QtGui.QIcon('icon/:/images/logo.png'))
         self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
 
         '''
@@ -579,6 +583,8 @@ class Icon(QtGui.QWidget):
 
         self.hosts_widget = HostWidget()
         self.checklist_widget = ChecklistWidget()
+        self.bav_engine_mask_widget = EngineTypeWeight()
+        self.bav_engine_mask_widget.bav_engine_mask_widget_show = upload(self.bav_engine_mask_widget.show)
         lis = [
         {
             'button_name': u'hosts助手',
@@ -629,6 +635,10 @@ class Icon(QtGui.QWidget):
             'function': bav_engine_scan_result_url
         },
         {
+            'button_name': u'引擎掩码工具',
+            'function': self.bav_engine_mask_widget.bav_engine_mask_widget_show 
+        },
+        {
             'button_name': u'工具升级',
             'function': tooluploader
         },
@@ -651,11 +661,6 @@ class Icon(QtGui.QWidget):
                              300, self.item_hight)
             self.connect(item, QtCore.SIGNAL('clicked()'), i['function'])
             grid.addWidget(item, index, 0)
-            '''
-            quit = QtGui.QPushButton('backup_hosts', self)
-            quit.setGeometry(10, 10, 150, 35)
-            self.connect(quit, QtCore.SIGNAL('clicked()'), backup_hosts)
-            '''
         self.setLayout(grid)
         self.center()
 
@@ -925,7 +930,7 @@ class ToolUploader(threading.Thread):
             BavLog.info(u'您已经是最新版本')
 
 
-
+@singleton
 class BAVConfig(object):
 
     def __init__(self):
@@ -933,27 +938,133 @@ class BAVConfig(object):
         self.bav_config_file = 'config.ini'
         self.bav_config_file = os.path.join(self.bav_install_path,
                                            self.bav_config_file)
+
+
+    @property
+    def od_engine_type(self):
+        return self.get_int_type_in_bav_config_file('EngineOption', 'engineType')
+
+    @property
+    def oa_engine_type(self):
+        return self.get_int_type_in_bav_config_file('RealTime', 'engineType')
+
+    def get_int_type_in_bav_config_file(self, section, option):
         if os.path.exists(self.bav_config_file):
-            # cat(self.bav_config_file)
             self.cf = ConfigParser.ConfigParser()
             self.cf.readfp(io.open(self.bav_config_file, 'r', encoding='utf-16'))
-            self.engine_type = self.cf.getint('EngineOption', 'engineType')
+            ret =  self.cf.getint(section, option)
+            return ret
         else:
             BavLog.info(u'没有安装BAV')
+            return 0
 
-        self.engine_type_notes = []
-        for i in const.ENGINE_TYPE_DICT:
-            if self.engine_type & i['num']:
-                self.engine_type_notes.append(i['note'])
+class EngineTypeWeight(QtGui.QWidget):
+    def __init__(self, parent = None):
+        QtGui.QWidget.__init__(self, parent)
+        self.setGeometry(300, 300, 250, 150)
+        self.setWindowTitle(u'引擎掩码')
+        self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
+        self.item_hight = 10
 
-        for i in self.engine_type_notes:
-            print i
+        grid = QtGui.QGridLayout()
+        grid.setSpacing(1)
+        self.checkboxs = []
+
+        self.engine_mask = QtGui.QLabel(u'引擎掩码(默认OD)：')
+        grid.addWidget(self.engine_mask, 0, 0)
+        self.engine_mask_edit = QtGui.QLineEdit()
+        reg = QtCore.QRegExp(r'\d{0,11}')
+        self.engine_mask_edit.setValidator(QtGui.QRegExpValidator(reg,self))
+        self.connect(self.engine_mask_edit, QtCore.SIGNAL('textChanged(QString)'), self.set_linetext)
+        grid.addWidget(self.engine_mask_edit, 1, 0)
+        engine_mask = QtGui.QLabel(u'引擎使用情况：')
+        grid.addWidget(engine_mask, 3, 0)
+
+        self.config_mask = BAVConfig().od_engine_type
+
+        for index, i in enumerate(const.ENGINE_TYPE_DICT):
+
+            item = QtGui.QCheckBox(i['note'], self)
+            item.setGeometry(10, 10 + index*self.item_hight,
+                             300, self.item_hight)
+            self.connect(item, QtCore.SIGNAL('stateChanged(int)'),
+                        self.totalnum)
+            grid.addWidget(item, index + 4, 0) # grid 位置
+            self.checkboxs.append((item, i['num']))
 
 
+        self.reset_od_engine_mask_button = QtGui.QPushButton(u'OD掩码')
+        self.connect(self.reset_od_engine_mask_button,
+                    QtCore.SIGNAL('clicked()'),
+                    self.reset_od)
+
+        # 这里有魔法数字 shit
+        grid.addWidget(self.reset_od_engine_mask_button, index + 5, 0)
+
+        self.reset_oa_engine_mask_button = QtGui.QPushButton(u'OA掩码')
+        self.connect(self.reset_oa_engine_mask_button,
+                    QtCore.SIGNAL('clicked()'),
+                    self.reset_oa)
+
+        # 这里有魔法数字 shit
+        grid.addWidget(self.reset_oa_engine_mask_button, index + 6, 0)
+
+        self.setLayout(grid)
+        self.set_check_box(self.config_mask)
+
+
+    def set_check_box(self, value):
+        for item, num in self.checkboxs:
+            if value & num:
+                item.setChecked(True)
+            else:
+                item.setChecked(False)
+
+
+    def set_linetext(self, value):
+        for item, num in self.checkboxs:
+            item.stateChanged.disconnect()
+        text = str(self.engine_mask_edit.text())
+        try:
+            value = int(text)
+            self.set_check_box(value)
+        except ValueError:
+            self.set_check_box(0)
+        for item, num in self.checkboxs:
+            self.connect(item, QtCore.SIGNAL('stateChanged(int)'),
+                        self.totalnum)
+
+    def totalnum(self):
+        num = 0
+        for a, b in self.checkboxs:
+            if a.isChecked():
+                num += b
+        self.engine_mask_edit.setText(str(num))
+
+    def reset_mask(self, value):
+        for item, num in self.checkboxs:
+            item.stateChanged.disconnect()
+        try:
+            self.set_check_box(value)
+        except ValueError:
+            self.set_check_box(0)
+        for item, num in self.checkboxs:
+            self.connect(item, QtCore.SIGNAL('stateChanged(int)'),
+                        self.totalnum)
+        self.engine_mask_edit.setText(str(value))
+
+    @upload
+    def reset_oa(self):
+        oa = BAVConfig().oa_engine_type
+        self.reset_mask(oa)
+
+    @upload
+    def reset_od(self):
+        od = BAVConfig().od_engine_type
+        self.reset_mask(od)
 
 
 if __name__ == '__main__':
-    BAVConfig()
     from watch_dir import WatchBAVDumpDir
     w = WatchBAVDumpDir()
     w.start()
