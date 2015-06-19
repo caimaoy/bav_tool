@@ -72,6 +72,8 @@ const.ENGINE_TYPE_DICT = [
     {'num': 0x00400000L, 'note':u'病毒免疫引擎'},
     {'num': 0x00800000L, 'note':u'硬链接识别'},
     {'num': 0x01000000L, 'note':u'OA防重复扫描识别'},
+    {'num': 0x02000000L, 'note':u'脱壳引擎'},
+    {'num': 0x04000000L, 'note':u'慧眼引擎'},
 ]
 
 
