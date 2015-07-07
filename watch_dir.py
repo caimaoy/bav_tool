@@ -108,7 +108,7 @@ class Upload(threading.Thread):
         self.upload_period = 30*60
         self.start_time = time.time()
 
-    @upload
+    @upload()
     def watch_bav_dump_dir(self):
         pass
 

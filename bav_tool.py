@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150619'
+__version__ = 'v0.0.1.20150706'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -46,11 +46,39 @@ print_lock = threading.RLock()
 
 import functools
 
-def upload(func):
-    @functools.wraps(func)
-    def wrapper(*args, **kwargs):
+def upload(function_name=None):
+    def _upload(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            f_name = function_name
+            if f_name:
+                pass
+            else:
+                f_name = func.__name__
+            upload_function_name(f_name)
+            return func(*args, **kwargs)
+        return wrapper
+    return _upload
+
+def upload_function_name(function_name):
+    '''
+    多线程异步上报函数名调用函数
+    '''
+    u = UploadFunctionName(function_name)
+    u.start()
+
+
+class UploadFunctionName(threading.Thread):
+    '''
+    多线程异步上报函数名
+    '''
+    def __init__(self, upload_function_name):
+        super(UploadFunctionName, self).__init__()
+        self.upload_function_name = upload_function_name
+
+    def upload(self):
         post_context = {}
-        post_context['function_name'] = func.__name__
+        post_context['function_name'] = self.upload_function_name
         try:
             f = urllib2.urlopen(
                 url=const.UPLOAD_URL,
@@ -66,8 +94,11 @@ def upload(func):
                 BavLog.error(u'网络有点问题...')
         except Exception as e:
             BavLog.error(repr(e))
-        return func(*args, **kwargs)
-    return wrapper
+
+    def run(self):
+        self.upload()
+
+
 
 def cache(func):
     """缓存装饰器
@@ -335,37 +366,37 @@ def call(args, wait=True, shell=True):
     return
 
 
-@upload
+@upload()
 def bav_checklist():
     call(BAV_CHECKLIST_URL, False)
 
 
-@upload
+@upload()
 def download_black_sample():
     call(BLACK_SAMPLE_URL, False)
 
 
-@upload
+@upload()
 def download_white_sample():
     call(WHITE_SAMPLE_URL, False)
 
 
-@upload
+@upload()
 def bav_dispose_update_url():
     call(BAV_DISPOSE_UPDATE_URL, False)
 
 
-@upload
+@upload()
 def bav_engine_type_url():
     call(BAV_ENGINE_TYPE, False)
 
 
-@upload
+@upload()
 def bav_engine_scan_result_url():
     call(BAV_ENGINE_SCAN_RESULT, False)
 
 
-@upload
+@upload()
 def bav_update_doc_url():
     call(BAV_UPDATE_DOC_URL, False)
 
@@ -378,7 +409,7 @@ def start_process(cmd):
     os.system(r'%s' % cmd)
 
 
-@upload
+@upload()
 def fresh_explorer():
     kill_process('explorer.exe')
     call('start explorer', False)
@@ -405,7 +436,7 @@ def backup(src, des, backup_name='_backup'):
         else:
             copy_fail = False
 
-@upload
+@upload()
 def backup_hosts():
     backup(HOST_PATH, HOST_PATH)
 
@@ -418,17 +449,17 @@ def cat(path):
             BavLog.info(i.replace('\n', ''))
 
 
-@upload
+@upload()
 def update_hosts():
     return hosts('update_hosts')
 
 
-@upload
+@upload()
 def md5_hosts():
     return hosts('md5_hosts')
 
 
-@upload
+@upload()
 def clean_hosts():
     return hosts('clean')
 
@@ -443,7 +474,7 @@ def hosts(k):
 def is_64_windows():
     return 'PROGRAMFILES(X86)' in os.environ
 
-@upload
+@upload()
 def show_hosts():
     BavLog.info('------hosts------- ')
     cat(HOST_PATH)
@@ -455,13 +486,13 @@ def open_dir(path):
     call(cmd, shell=False, wait=False)
 
 
-@upload
+@upload()
 def open_hosts_dir():
     open_dir(HOST_DIR)
 
 @cache
 def get_bav_install_path():
-    # TODO add try if not install BAV
+    # TODO add try if not install BAV bug!!!!!!
     k = _winreg.HKEY_LOCAL_MACHINE
     if is_64_windows():
         sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
@@ -473,12 +504,60 @@ def get_bav_install_path():
     return bav_install_path
 
 
+class ChecklistDownloadProtectHandle(object):
+    '''
+BLACK_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
+WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
+    '''
+
+    def __init__(self, browser, sample_type):
+
+        self.browser = browser.lower()
+        self.sample_type = sample_type
+
+        self.browser_name = None
+        self.sample_type_name = None
+        self.sample_url = None
+        self.cmd = r'start %s %s'
+        self.cmd_name = u'%s下载%s样本'
+        self.upload_name = u'%s_download_%s_sample'
+        self.init()
+
+    def init(self):
+        if self.browser in ('chrome', 'firefox'):
+            self.browser_name = self.browser
+        elif self.browser == 'iexplore':
+            self.browser_name = 'IE'
+        else:
+            BavLog.error('BrowserError')
+
+
+        if self.sample_type == 'black':
+            self.sample_type_name = u'黑'
+            self.sample_url = r'http://172.17.194.10:8088/Share/dujuan02/sample/Virus/Sality.ae/4DF99AE59D4DAB46D5F44E6BC8E80920'
+        elif self.sample_type == 'white':
+            self.sample_type_name = u'白'
+            self.sample_url = r'http://172.17.194.10:8088/Share/uTorrent.exe'
+        else:
+            BavLog.error('SampleTypeError')
+
+        self.cmd = self.cmd % (self.browser, self.sample_url)
+        self.cmd_name = self.cmd_name % (self.browser_name, self.sample_type_name)
+        self.upload_name = self.upload_name % (self.browser, self.sample_type)
+
+    def browser_download(self):
+        @upload(self.upload_name)
+        def _ret_func():
+            call(self.cmd, False)
+        return _ret_func
+
+
+
 class HostWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
         self.setGeometry(300, 300, 275, 550)
         self.setWindowTitle(u'hosts助手')
-        # self.setWindowIcon(QtGui.QIcon('icon/:/images/logo.png'))
         self.setWindowIcon(QtGui.QIcon(':/images/logo.png'))
 
         self.item_width = 250
@@ -523,6 +602,22 @@ class HostWidget(QtGui.QWidget):
             grid.addWidget(item, index, 0)
         self.setLayout(grid)
 
+checcklist_donwload_list = []
+
+def make_browser_download_list():
+    browsers = ['chrome', 'firefox', 'iexplore']
+    sample_types = ['black', 'white']
+
+    com = [(i, j) for i in browsers for j in sample_types]
+
+    for browser, sample_type in com:
+        c = ChecklistDownloadProtectHandle(browser, sample_type)
+        dic = {
+            'button_name': c.cmd_name,
+            'function': c.browser_download()
+        }
+        checcklist_donwload_list.append(dic)
+
 
 class ChecklistWidget(QtGui.QWidget):
     def __init__(self, parent=None):
@@ -537,7 +632,10 @@ class ChecklistWidget(QtGui.QWidget):
         {
             'button_name': u'Bav_checklist指南',
             'function': bav_checklist
-        },
+        }
+        ]
+        '''
+        ,
         {
             'button_name': u'chrome下载黑文件',
             'function': download_black_sample
@@ -547,6 +645,9 @@ class ChecklistWidget(QtGui.QWidget):
             'function': download_white_sample
         },
         ]
+        '''
+        make_browser_download_list()
+        lis.extend(checcklist_donwload_list)
 
         self.window_width = self.item_width + 20
         self.window_hight = len(lis) * self.item_hight
@@ -563,7 +664,7 @@ class ChecklistWidget(QtGui.QWidget):
 
 
 class Icon(QtGui.QWidget):
-    @upload
+    @upload()
     def __init__(self, parent=None):
         self.is_64_windows = is_64_windows()
 
@@ -584,7 +685,6 @@ class Icon(QtGui.QWidget):
         self.hosts_widget = HostWidget()
         self.checklist_widget = ChecklistWidget()
         self.bav_engine_mask_widget = EngineTypeWeight()
-        self.bav_engine_mask_widget.bav_engine_mask_widget_show = upload(self.bav_engine_mask_widget.show)
         lis = [
         {
             'button_name': u'hosts助手',
@@ -636,7 +736,7 @@ class Icon(QtGui.QWidget):
         },
         {
             'button_name': u'引擎掩码工具',
-            'function': self.bav_engine_mask_widget.bav_engine_mask_widget_show 
+            'function': self.bav_engine_mask_widget.show
         },
         {
             'button_name': u'工具升级',
@@ -664,7 +764,7 @@ class Icon(QtGui.QWidget):
         self.setLayout(grid)
         self.center()
 
-    @upload
+    @upload()
     def backup_dump(self):
         bav_install_path = get_bav_install_path()
         BavLog.debug('BAV install dir: %s' % bav_install_path)
@@ -676,12 +776,12 @@ class Icon(QtGui.QWidget):
         BavLog.info('open %s' % LOCAL_DIR)
         call(cmd, shell=False, wait=False)
 
-    @upload
+    @upload()
     def open_insatll_dir(self):
         bav_install_path = get_bav_install_path()
         self.open_dir(bav_install_path)
 
-    @upload
+    @upload()
     def open_hosts_dir(self):
         self.open_dir(HOST_DIR)
 
@@ -730,7 +830,7 @@ class Icon(QtGui.QWidget):
         '''About Box.<br />
         This accepts HTML formatting <b> bold</b>'''
 
-    @upload
+    @upload()
     def show_merge_csv_file(self):
         def get_csv_data(file_name, row_name):
             import csv
@@ -815,7 +915,7 @@ class Downloader(threading.Thread):
             open_dir(os.path.dirname(os.path.abspath(self.file_name)))
 
 
-@upload
+@upload()
 def download_file(file_name, download_url):
     # TODO del file
     ret = False
@@ -915,7 +1015,7 @@ class ToolUploader(threading.Thread):
                 ret = True
         return ret
 
-    @upload
+    @upload()
     def get_the_last_version(self):
         if self.need_update():
             BavLog.info(u'您现在不是最新版本')
@@ -959,6 +1059,7 @@ class BAVConfig(object):
             return 0
 
 class EngineTypeWeight(QtGui.QWidget):
+    @upload('engine_type_weight_init')
     def __init__(self, parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.setGeometry(300, 300, 250, 150)
@@ -1053,12 +1154,12 @@ class EngineTypeWeight(QtGui.QWidget):
                         self.totalnum)
         self.engine_mask_edit.setText(str(value))
 
-    @upload
+    @upload()
     def reset_oa(self):
         oa = BAVConfig().oa_engine_type
         self.reset_mask(oa)
 
-    @upload
+    @upload()
     def reset_od(self):
         od = BAVConfig().od_engine_type
         self.reset_mask(od)
