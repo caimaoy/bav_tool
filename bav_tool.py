@@ -8,7 +8,7 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150706'
+__version__ = 'v0.0.1.20150708'
 __uuid_name__ = 'bav_test_tool'
 
 import ctypes
@@ -347,6 +347,7 @@ BAV_DISPOSE_UPDATE_URL = r'start chrome http://hkg02-sys-web51.hkg02.baidu.com:8
 BAV_UPDATE_DOC_URL = r'start chrome http://caimaoy.gitbooks.io/doc_bav/content/'
 BAV_ENGINE_SCAN_RESULT = r'start chrome http://wiki.baidu.com/pages/viewpage.action?pageId=96210979'
 BAV_ENGINE_TYPE = r'start chrome http://wiki.baidu.com/pages/viewpage.action?pageId=96210921'
+BAV_CHECKLIST_UPDATE_PACKAGE = r' start chrome ftp://172.17.194.12/bav_tool/BAV_checklist.exe'
 LOCAL_DIR = os.path.dirname(os.path.abspath(__file__))
 
 def call(args, wait=True, shell=True):
@@ -399,6 +400,26 @@ def bav_engine_scan_result_url():
 @upload()
 def bav_update_doc_url():
     call(BAV_UPDATE_DOC_URL, False)
+
+
+@upload()
+def bav_checklist_update_package():
+    call(BAV_CHECKLIST_UPDATE_PACKAGE, False)
+
+
+@upload()
+def del_bavwl_file():
+    file_path = get_bav_install_path()
+    file_name = 'bavwl.dat'
+    file_name = os.path.join(file_path, file_name)
+    try:
+        os.remove(file_name)
+    except WindowsError:
+        BavLog.error(u'没有安装BAV或者没有停服务')
+    except Exception as e:
+        BavLog.error(repr(e))
+    else:
+        BavLog.info('Success to del bavwl.dat.')
 
 
 def kill_process(name):
@@ -493,14 +514,19 @@ def open_hosts_dir():
 @cache
 def get_bav_install_path():
     # TODO add try if not install BAV bug!!!!!!
+    bav_install_path = ''
     k = _winreg.HKEY_LOCAL_MACHINE
     if is_64_windows():
         sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
     else:
         sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
-    key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
-    name = 'InstallDir'
-    (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
+
+    try:
+        key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
+        name = 'InstallDir'
+        (bav_install_path, valuetype) = _winreg.QueryValueEx(key, name)
+    except:
+        bav_install_path = ''
     return bav_install_path
 
 
@@ -632,20 +658,12 @@ class ChecklistWidget(QtGui.QWidget):
         {
             'button_name': u'Bav_checklist指南',
             'function': bav_checklist
+        },
+        {
+            'button_name': u'Bav_checklist需要覆盖装包下载',
+            'function': bav_checklist_update_package
         }
         ]
-        '''
-        ,
-        {
-            'button_name': u'chrome下载黑文件',
-            'function': download_black_sample
-        },
-        {
-            'button_name': u'chrome下载白文件',
-            'function': download_white_sample
-        },
-        ]
-        '''
         make_browser_download_list()
         lis.extend(checcklist_donwload_list)
 
@@ -737,6 +755,10 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'引擎掩码工具',
             'function': self.bav_engine_mask_widget.show
+        },
+        {
+            'button_name': u'删除二次加速缓存（自行关服务）',
+            'function': del_bavwl_file
         },
         {
             'button_name': u'工具升级',
