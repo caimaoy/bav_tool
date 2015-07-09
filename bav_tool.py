@@ -1072,13 +1072,128 @@ class BAVConfig(object):
 
     def get_int_type_in_bav_config_file(self, section, option):
         if os.path.exists(self.bav_config_file):
-            self.cf = ConfigParser.ConfigParser()
-            self.cf.readfp(io.open(self.bav_config_file, 'r', encoding='utf-16'))
-            ret =  self.cf.getint(section, option)
+            cf = ConfigParser.ConfigParser()
+            cf.readfp(io.open(self.bav_config_file, 'r', encoding='utf-16'))
+            ret = cf.getint(section, option)
             return ret
         else:
             BavLog.info(u'没有安装BAV')
             return 0
+
+    def set(self, section, option, value):
+        cfg = ConfigParser.ConfigParser()
+        try:
+            fp = codecs.open(self.configFile, encoding = 'utf-16le')
+            header = fp.read(1)# skip and retrieve the bom header: u'\ufeff'
+            cfg.readfp(fp)
+            fp.close()
+
+            if not cfg.has_section(section):
+                cfg.add_section(section)
+
+            cfg.set(section, option, value)
+            fp = codecs.open(self.configFile, mode='wb', encoding='utf-16le')
+            fp.write(header) #must accompanying the above header = fp.read(1)
+            cfg.write(fp)
+            fp.close()
+            return 0
+        except Exception as e:
+            # print sys.exc_info()[0], sys.exc_info()[1]
+            BavLog.error(repr(e))
+            return -1
+
+    def get(self, section, option):
+        cfg = ConfigParser.ConfigParser()
+        try:
+            fp = codecs.open(self.configFile, encoding='utf-16le')
+            fp.read(1)
+            cfg.readfp(fp)
+            value = cfg.get(section, option)
+            fp.close()
+            return value
+        except:
+            # print sys.exc_info()[0], sys.exc_info()[1]
+            BavLog.error(repr(e))
+            return -1
+
+
+
+class BAVInfo(object):
+    def __init__(self):
+        self.bav_install_path = get_bav_install_path()
+        self.version_file = 'version.xml'
+        self.version_file = os.path.join(
+            self.bav_install_path,
+            self.version_file
+        )
+
+
+class BAVChecklistUpdate(BAVInfo):
+
+    def __init__(self):
+        super(BAVChecklistUpdate, self).__init__()
+        self.bav_config = BAVConfig()
+        self.version_pattern = r'\d\.\d\.\d\.\d{1,6}'
+
+    def get_real_version(self):
+        '''TODO 这个方法是有bug的，但是BAV自己也没有办法
+        '''
+        get_bav_install_path()
+        return '5.5.5.12345'
+
+    def change_version(self, s, change_type):
+        des_version = self._create_version(change_type)
+        s = re.sub(self.version_pattern, des_version, s)
+        return s
+
+    def _create_version(self, change_type):
+        def repl_add(matched):
+            ret = matched.group(1) + '1'
+            return ret
+
+        def repl_all(matched):
+            ret = [
+                matched.group(1),
+                '0',
+                matched.group(3),
+                '1'
+            ]
+            return ''.join(ret)
+        real_version = self.get_real_version()
+        replace_funciton = lambda a:a.group(0)
+        replace_pattern = r'\d\.\d\.\d\.\d{1,6}'
+        if change_type == 'ADD':
+            '''增量升级
+            '''
+            replace_pattern = r'(\d\.\d\.\d\.)(\d{1,6})'
+            replace_funciton = repl_add
+        elif change_type == 'ALL':
+            '''全量升级
+            '''
+            replace_pattern = r'(\d\.)(\d)(\.\d\.)(\d{1,6})'
+            replace_funciton = repl_all
+        else:
+            BavLog.error('No change_type')
+        s = re.sub(replace_pattern, replace_funciton, real_version)
+        return s
+
+
+    def change_version_file(self, change_type):
+        context = []
+        with open(self.version_file) as f:
+            for i in f:
+                add_context = self.change_version(i, change_type)
+                context.append(add_context)
+        if context:
+            try:
+                f = open(self.version_file, 'w')
+                f.write(''.join(context))
+            except Exception as e:
+                BavLog.error(repr(e))
+                BavLog.error(u'可能没有关自保')
+        else:
+            BavLog.error(u'修改version.xml文件失败')
+
 
 class EngineTypeWeight(QtGui.QWidget):
     @upload('engine_type_weight_init')
@@ -1186,8 +1301,13 @@ class EngineTypeWeight(QtGui.QWidget):
         od = BAVConfig().od_engine_type
         self.reset_mask(od)
 
+def test():
+    b = BAVChecklistUpdate()
+    b.change_version_file('ADD')
+
 
 if __name__ == '__main__':
+    '''
     from watch_dir import WatchBAVDumpDir
     w = WatchBAVDumpDir()
     w.start()
@@ -1198,3 +1318,5 @@ if __name__ == '__main__':
     icon.show()
     sys.exit(app.exec_())
     # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=AC7123250F7DEBF509D1EB299CB593F1
+    '''
+    test()
