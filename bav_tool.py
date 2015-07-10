@@ -8,9 +8,10 @@ Edit by caimaoy
 '''
 
 __author__ = 'caimaoy'
-__version__ = 'v0.0.1.20150708'
+__version__ = 'v0.0.1.20150710'
 __uuid_name__ = 'bav_test_tool'
 
+import codecs
 import ctypes
 import ConfigParser
 import io
@@ -415,7 +416,10 @@ def del_bavwl_file():
     try:
         os.remove(file_name)
     except WindowsError:
-        BavLog.error(u'没有安装BAV或者没有停服务')
+        if os.path.exists(file_name):
+            BavLog.error(u'没有安装BAV或者没有停服务')
+        else:
+            BavLog.info('Success to del bavwl.dat.')
     except Exception as e:
         BavLog.error(repr(e))
     else:
@@ -511,9 +515,8 @@ def open_dir(path):
 def open_hosts_dir():
     open_dir(HOST_DIR)
 
-@cache
 def get_bav_install_path():
-    # TODO add try if not install BAV bug!!!!!!
+    '''
     bav_install_path = ''
     k = _winreg.HKEY_LOCAL_MACHINE
     if is_64_windows():
@@ -528,6 +531,25 @@ def get_bav_install_path():
     except:
         bav_install_path = ''
     return bav_install_path
+    '''
+
+    return get_bav_reg_info('InstallDir')
+
+@cache
+def get_bav_reg_info(info):
+    info_context = ''
+    k = _winreg.HKEY_LOCAL_MACHINE
+    if is_64_windows():
+        sub_k = 'SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+    else:
+        sub_k = 'SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\Baidu Antivirus'
+
+    try:
+        key = _winreg.OpenKey(k, sub_k, 0, _winreg.KEY_READ)
+        (info_context, valuetype) = _winreg.QueryValueEx(key, info)
+    except:
+        info_context = ''
+    return info_context
 
 
 class ChecklistDownloadProtectHandle(object):
@@ -768,6 +790,14 @@ class Icon(QtGui.QWidget):
             'button_name': u'关于',
             'function': self.show_about
         },
+        {
+            'button_name': u'发布版本增量升级助手',
+            'function': test
+        },
+        {
+            'button_name': u'发布版本全量升级助手',
+            'function': test_all_update
+        }
         ]
 
         self.window_width = self.item_width + 20
@@ -1083,7 +1113,7 @@ class BAVConfig(object):
     def set(self, section, option, value):
         cfg = ConfigParser.ConfigParser()
         try:
-            fp = codecs.open(self.configFile, encoding = 'utf-16le')
+            fp = codecs.open(self.bav_config_file, encoding = 'utf-16le')
             header = fp.read(1)# skip and retrieve the bom header: u'\ufeff'
             cfg.readfp(fp)
             fp.close()
@@ -1092,7 +1122,7 @@ class BAVConfig(object):
                 cfg.add_section(section)
 
             cfg.set(section, option, value)
-            fp = codecs.open(self.configFile, mode='wb', encoding='utf-16le')
+            fp = codecs.open(self.bav_config_file, mode='wb', encoding='utf-16le')
             fp.write(header) #must accompanying the above header = fp.read(1)
             cfg.write(fp)
             fp.close()
@@ -1105,13 +1135,13 @@ class BAVConfig(object):
     def get(self, section, option):
         cfg = ConfigParser.ConfigParser()
         try:
-            fp = codecs.open(self.configFile, encoding='utf-16le')
+            fp = codecs.open(self.bav_config_file, encoding='utf-16le')
             fp.read(1)
             cfg.readfp(fp)
             value = cfg.get(section, option)
             fp.close()
             return value
-        except:
+        except Exception as e:
             # print sys.exc_info()[0], sys.exc_info()[1]
             BavLog.error(repr(e))
             return -1
@@ -1126,6 +1156,17 @@ class BAVInfo(object):
             self.bav_install_path,
             self.version_file
         )
+        self.update_dir = 'update'
+        self.update_dir = os.path.join(
+            self.bav_install_path,
+            self.update_dir
+        )
+
+        self.program_file_list_file = 'ProgramFileList.xml'
+        self.program_file_list_file = os.path.join(
+            self.bav_install_path,
+            self.program_file_list_file
+        )
 
 
 class BAVChecklistUpdate(BAVInfo):
@@ -1136,14 +1177,14 @@ class BAVChecklistUpdate(BAVInfo):
         self.version_pattern = r'\d\.\d\.\d\.\d{1,6}'
 
     def get_real_version(self):
-        '''TODO 这个方法是有bug的，但是BAV自己也没有办法
+        '''通过注册表读取真实版本号，注册表被改了咋办，呵呵
         '''
-        get_bav_install_path()
-        return '5.5.5.12345'
+        return get_bav_reg_info('InstallVersion')
 
     def change_version(self, s, change_type):
         des_version = self._create_version(change_type)
-        s = re.sub(self.version_pattern, des_version, s)
+        if re.search(r'ProgramVersion', s):
+            s = re.sub(self.version_pattern, des_version, s)
         return s
 
     def _create_version(self, change_type):
@@ -1191,8 +1232,123 @@ class BAVChecklistUpdate(BAVInfo):
             except Exception as e:
                 BavLog.error(repr(e))
                 BavLog.error(u'可能没有关自保')
+            else:
+                BavLog.info(u'修改version.xml文件成功')
         else:
             BavLog.error(u'修改version.xml文件失败')
+
+    def close_bd_engine(self, section, option):
+        BD_MASK = 0x00000004L
+        bav_config = BAVConfig()
+        mask = int(bav_config.get(section, option))
+
+        if mask & BD_MASK:
+            mask -= BD_MASK
+            bav_config.set(section, option, mask)
+
+    def close_od_bd_engine(self):
+        self.close_bd_engine('EngineOption', 'engineType')
+        BavLog.info(u'修改od引擎掩码')
+
+    def close_oa_bd_engine(self):
+        self.close_bd_engine('RealTime', 'engineType')
+        BavLog.info(u'修改oa引擎掩码')
+
+
+    def kill_bav_update_process(self):
+        kill_process('bavUpdater.exe')
+
+    def del_update_dir(self):
+        try:
+            shutil.rmtree(self.update_dir)
+        except Exception as e:
+            if os.path.exists(self.update_dir):
+                BavLog.error(u'可能没有停服务')
+                BavLog.error(repr(e))
+            else:
+                BavLog.info('del update_dir: %s' % self.update_dir)
+        else:
+            BavLog.info('del update_dir: %s' % self.update_dir)
+
+    def modify_program_file_list_file(self):
+        # 修改ProgramFileList.xml文件
+        context = []
+        # <File Name="IEProtect.exe.7z" Size="0x0002ee9a" Time="0x01d0413ecc021465" Md5="0x24777d9e1435f7fd1196d51c2f0d7dc2" DcSize="0x0009a750" DcTime="0x01d0413e9f297085" DcMd5="0x037bafb93c51cf783f9b09c5017efdf1" />
+        IE_replace_pattern = r'(.*IEProtect.exe.*Size=")(.{10})(.*DcSize=")(.{10})(.*)'
+        version_replace_pattern = r'(.*version.xml.*Size=")(.{10})(.*DcSize=")(.{10})(.*)'
+        with open(self.program_file_list_file) as f:
+            for i in f:
+                add_context = re.sub(IE_replace_pattern, r'\g<1>0x00000001\g<3>0x00000001\g<5>', i)
+                add_context = re.sub(version_replace_pattern, r'\g<1>0x00000001\g<3>0x00000001\g<5>', add_context)
+                context.append(add_context)
+        if context:
+            try:
+                f = open(self.program_file_list_file, 'w')
+                f.write(''.join(context))
+            except Exception as e:
+                BavLog.error(repr(e))
+                BavLog.error(u'可能没有关自保')
+            else:
+                BavLog.info(u'修改ProgramFileList.xml文件成功')
+        else:
+            BavLog.error(u'修改ProgramFileList.xml文件失败')
+
+    def set_config_update_connect_time(self):
+        '''修改config中update配置
+        '''
+        bav_config = BAVConfig()
+        bav_config.set('update', 'connect_time', 2)
+        bav_config.set('update', 'period', 2)
+        BavLog.info('set config update connect time')
+
+    def self_add_update(self):
+        # 修改hosts
+        update_hosts()
+        # 修改版本号为增量升级版本号
+        self.change_version_file('ADD')
+
+        # 关闭小红伞
+        self.close_oa_bd_engine()
+        self.close_od_bd_engine()
+
+        # kill 升级进程
+        self.kill_bav_update_process()
+
+        # del update_dir
+        self.del_update_dir()
+
+        # 修改config update connect_time
+        self.set_config_update_connect_time()
+
+        # 修改ProgramFileList.xml文件
+        self.modify_program_file_list_file()
+        kill_process('bav.exe')
+        open_dir(get_bav_install_path())
+
+
+    def self_all_update(self):
+        # 修改hosts
+        update_hosts()
+        # 修改版本号为增量升级版本号
+        self.change_version_file('ALL')
+
+        # 关闭小红伞
+        self.close_oa_bd_engine()
+        self.close_od_bd_engine()
+
+        # kill 升级进程
+        self.kill_bav_update_process()
+
+        # del update_dir
+        self.del_update_dir()
+
+        # 修改config update connect_time
+        self.set_config_update_connect_time()
+
+        # 修改ProgramFileList.xml文件
+        self.modify_program_file_list_file()
+        kill_process('bav.exe')
+        open_dir(get_bav_install_path())
 
 
 class EngineTypeWeight(QtGui.QWidget):
@@ -1303,11 +1459,14 @@ class EngineTypeWeight(QtGui.QWidget):
 
 def test():
     b = BAVChecklistUpdate()
-    b.change_version_file('ADD')
+    b.self_add_update()
+
+def test_all_update():
+    b = BAVChecklistUpdate()
+    b.self_all_update()
 
 
 if __name__ == '__main__':
-    '''
     from watch_dir import WatchBAVDumpDir
     w = WatchBAVDumpDir()
     w.start()
@@ -1320,3 +1479,4 @@ if __name__ == '__main__':
     # http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=AC7123250F7DEBF509D1EB299CB593F1
     '''
     test()
+    '''
