@@ -585,7 +585,6 @@ WHITE_SAMPLE_URL = r'start chrome http://172.17.194.10:8088/Share/uTorrent.exe'
         return _ret_func
 
 
-
 class HostWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -847,7 +846,6 @@ class Icon(QtGui.QWidget):
             except Exception as e:
                 BavLog.error(e)
 
-            import re
             reg_ma5 = r'^[\dABCDEF]{32}$'
             if re.match(reg_ma5, md5):
                 download_url = 'http://store.bav.baidu.com/cgi-bin/download_av_sample.cgi?hash=%s' % md5
