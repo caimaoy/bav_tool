@@ -92,10 +92,8 @@ class UploadFunctionName(threading.Thread):
         except socket.error:
             errno, errstr = sys.exc_info()[:2]
             if errno == socket.timeout:
-                # BavLog.error(u'网络有点问题...')
                 pass
         except Exception as e:
-            # BavLog.error(repr(e))
             pass
 
     def run(self):
@@ -773,6 +771,10 @@ class Icon(QtGui.QWidget):
         {
             'button_name': u'checklist发布版本全量升级（自行关服务）',
             'function': checklist_version_all_update
+        },
+        {
+            'button_name': u'BAV小工具版本检查助手',
+            'function': check_bav_tool_version
         },
         {
             'button_name': u'工具升级',
@@ -1458,7 +1460,64 @@ def checklist_version_add_update():
 def checklist_version_all_update():
     b = BAVChecklistUpdate()
     b.self_all_update()
+ 
 
+class CheckBAVToolsHandle(object):
+    def __init__(self):
+        self.bav_tool_inside_dir_basename = 'bavadvtools'
+        self.bav_tool_outside_dir_basename = 'bavadvtools2'
+        self.bav_tool_dir = self.get_tool_dir()
+        self.check_file = 'detail.xml'
+
+    def get_tool_dir(self):
+        '''匹配不同版本小工具目录，奇葩的产品设计，自己问产品
+        '''
+        bav_install_path = get_bav_install_path()
+        inside_dir = os.path.join(bav_install_path, self.bav_tool_inside_dir_basename)
+        outside_dir = os.path.join(
+            os.path.dirname(bav_install_path),
+            self.bav_tool_outside_dir_basename
+        )
+
+        if os.path.exists(inside_dir):
+            return inside_dir
+        elif os.path.exists(outside_dir):
+            return outside_dir
+        else:
+            return ''
+
+    def parse_xml(self, xml_file):
+        # xml_file = r'C:\Program Files\Baidu Security\Baidu Antivirus\5.4.3.133394.1\bavadvtools\5DB281C3-B655-656A-01B6-E302199E376A\detailDef.xml'
+		# <lang id="2052">广告拦截</lang>
+        reg_tool_name = r'<lang id="2052">(.*)</lang>'
+        # <toolver>1.0.1.1</toolver>
+        reg_version = r'<toolver>(.*)</toolver>'
+        with codecs.open(xml_file, encoding='utf-8') as f:
+            ret = []
+            context = f.read()
+            ret.append(re.search(reg_tool_name, context).group(1))
+            ret.append(re.search(reg_version, context).group(1))
+            BavLog.info('|'.join(ret))
+
+    def traversal(self):
+        for i in os.listdir(self.bav_tool_dir):
+            check_file = os.path.join(self.bav_tool_dir, i, self.check_file)
+            try:
+                self.parse_xml(check_file)
+            except:
+                pass
+
+    def __str__(self):
+        return self.bav_tool_dir
+
+    def __repr__(self):
+        self.__str__()
+
+
+@upload()
+def check_bav_tool_version():
+    c = CheckBAVToolsHandle()
+    c.traversal()
 
 if __name__ == '__main__':
     from watch_dir import WatchBAVDumpDir
