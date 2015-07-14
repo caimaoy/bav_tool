@@ -100,7 +100,6 @@ class UploadFunctionName(threading.Thread):
         self.upload()
 
 
-
 def cache(func):
     """缓存装饰器
     """
@@ -1400,14 +1399,12 @@ class EngineTypeWeight(QtGui.QWidget):
         self.setLayout(grid)
         self.set_check_box(self.config_mask)
 
-
     def set_check_box(self, value):
         for item, num in self.checkboxs:
             if value & num:
                 item.setChecked(True)
             else:
                 item.setChecked(False)
-
 
     def set_linetext(self, value):
         for item, num in self.checkboxs:
@@ -1497,15 +1494,19 @@ class CheckBAVToolsHandle(object):
             context = f.read()
             ret.append(re.search(reg_tool_name, context).group(1))
             ret.append(re.search(reg_version, context).group(1))
-            BavLog.info('|'.join(ret))
+            BavLog.info(': '.join(ret))
 
     def traversal(self):
-        for i in os.listdir(self.bav_tool_dir):
-            check_file = os.path.join(self.bav_tool_dir, i, self.check_file)
-            try:
-                self.parse_xml(check_file)
-            except:
-                pass
+        try:
+            BavLog.info(('-' * 22) + u'BAV小工具版本' + ('-' * 22))
+            for i in os.listdir(self.bav_tool_dir):
+                check_file = os.path.join(self.bav_tool_dir, i, self.check_file)
+                try:
+                    self.parse_xml(check_file)
+                except:
+                    pass
+        except:
+            pass
 
     def __str__(self):
         return self.bav_tool_dir
